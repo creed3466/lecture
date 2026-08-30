@@ -161,8 +161,17 @@ async function analyze(request, env, origin) {
 
   const geminiPayload = await geminiResponse.json();
   if (!geminiResponse.ok) {
-    console.error("Gemini request failed", geminiResponse.status);
-    return json({ error: "AI 분석을 완료하지 못했습니다." }, 502, origin);
+    const upstreamCode = cleanText(geminiPayload?.error?.status, 60) || "UNKNOWN";
+    const upstreamMessage = cleanText(geminiPayload?.error?.message, 240) || "상세 정보 없음";
+    console.error("Gemini request failed", geminiResponse.status, upstreamCode);
+    return json({
+      error: "AI 분석을 완료하지 못했습니다.",
+      diagnostic: {
+        providerStatus: geminiResponse.status,
+        code: upstreamCode,
+        message: upstreamMessage
+      }
+    }, 502, origin);
   }
 
   try {
