@@ -140,9 +140,10 @@ function buildLocalReview(caseData) {
   const observed = [
     `부재 유형: ${caseData.absenceType}`,
     `집을 비운 시간: ${caseData.absenceDuration}`,
-    `마지막 원격 확인 시각: ${caseData.lastCheckTime}`,
     `홈캠에서 직접 확인한 내용: ${normalizeSentence(caseData.observedFacts)}`
   ];
+
+  if (caseData.eventDetectionPreview) observed.push("이벤트 감지 분석 Preview가 선택되었습니다.");
 
   if (caseData.deviceAlert) {
     observed.push(`기기 알림 문구: ${normalizeSentence(caseData.deviceAlert)}`);
@@ -209,11 +210,14 @@ async function requestAiReview(caseData) {
         caseData: {
           absenceType: caseData.absenceType,
           absenceDuration: caseData.absenceDuration,
+          absenceStartDate: caseData.absenceStartDate,
+          absenceEndDate: caseData.absenceEndDate,
           lastCheckTime: caseData.lastCheckTime,
           availableContact: caseData.availableContact,
           observedFacts: caseData.observedFacts,
           concernReason: caseData.concernReason,
-          deviceAlert: caseData.deviceAlert
+          deviceAlert: caseData.deviceAlert,
+          eventDetectionPreview: caseData.eventDetectionPreview
         },
         image: caseData.image ? { mimeType: caseData.image.mimeType, data: caseData.image.data } : null
       })
@@ -235,14 +239,14 @@ function buildLocalRelayMessage(caseData, target) {
   const checklist = state.aiReview?.onsite_checklist?.length
     ? `\n\n확인 부탁드릴 항목\n${state.aiReview.onsite_checklist.map((item) => `- ${item}`).join("\n")}`
     : "";
-  return `[CatGuard Relay 현장 확인 요청]\n\n${target}에게 부탁드립니다.\n\n제가 지금 ${caseData.absenceType}으로 집을 비운 상태입니다.\n- 집을 비운 시간: ${caseData.absenceDuration}\n- 마지막 원격 확인: ${caseData.lastCheckTime}\n- 홈캠에서 확인한 내용: ${normalizeSentence(caseData.observedFacts)}\n- 추가 확인이 필요하다고 느낀 이유: ${normalizeSentence(caseData.concernReason)}${alertLine}${aiLine}${checklist}\n\n가능하시면 집에 가서 현재 상황을 한 번 확인해 주세요.\nAI 관찰은 질병·응급 여부를 판단한 것이 아니라, 직접 확인할 항목을 정리한 참고 정보입니다.`;
+  return `[CatGuard Relay 현장 확인 요청]\n\n${target}에게 부탁드립니다.\n\n제가 지금 ${caseData.absenceType}으로 집을 비운 상태입니다.\n- 집을 비운 시간: ${caseData.absenceDuration}\n- 홈캠에서 확인한 내용: ${normalizeSentence(caseData.observedFacts)}\n- 추가 확인이 필요하다고 느낀 이유: ${normalizeSentence(caseData.concernReason)}${alertLine}${aiLine}${checklist}\n\n가능하시면 집에 가서 현재 상황을 한 번 확인해 주세요.\nAI 관찰은 질병·응급 여부를 판단한 것이 아니라, 직접 확인할 항목을 정리한 참고 정보입니다.`;
 }
 
 function buildOwnerAlert(caseData) {
   const summary = state.aiReview?.scene_summary || "평소와 다른 장면을 확인했습니다.";
   return {
     title: "확인이 필요한 장면이 감지되었어요",
-    preview: `${summary} · ${caseData.lastCheckTime.replace("T", " ")}`
+    preview: `${summary} · ${caseData.absenceDuration}`
   };
 }
 
@@ -279,6 +283,10 @@ const imagePreview = document.getElementById("image-preview");
 const imageMeta = document.getElementById("image-meta");
 const removeImageButton = document.getElementById("remove-image");
 const useExampleButton = document.getElementById("use-example");
+const absenceStartDate = document.getElementById("absence-start-date");
+const absenceEndDate = document.getElementById("absence-end-date");
+const absenceRangeSummary = document.getElementById("absence-range-summary");
+const eventDetectionPreview = document.getElementById("event-detection-preview");
 
 function updateAiSubmitState() {
   aiSubmitButton.disabled = !consent.checked;
@@ -328,44 +336,78 @@ cameraImageInput.addEventListener("change", () => {
 
 removeImageButton.addEventListener("click", clearPreparedImage);
 
-function localDateTimeHoursAgo(hours) {
-  const date = new Date(Date.now() - hours * 60 * 60 * 1000);
+function localDateDaysFromNow(days) {
+  const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
-  return local.toISOString().slice(0, 16);
+  return local.toISOString().slice(0, 10);
 }
 
-useExampleButton.addEventListener("click", async () => {
+function formatAbsenceRange(start, end) {
+  if (!start || !end) return "시작일과 종료일을 선택하세요";
+  const startDate = new Date(`${start}T00:00:00`);
+  const endDate = new Date(`${end}T00:00:00`);
+  const dayCount = Math.max(1, Math.round((endDate - startDate) / 86400000));
+  const label = (value) => value.replaceAll("-", ".");
+  return `${label(start)} – ${label(end)} · ${dayCount}일`;
+}
+
+function updateAbsenceRange() {
+  if (absenceStartDate.value) absenceEndDate.min = absenceStartDate.value;
+  if (absenceStartDate.value && absenceEndDate.value && absenceEndDate.value < absenceStartDate.value) {
+    absenceEndDate.value = absenceStartDate.value;
+  }
+  absenceRangeSummary.textContent = formatAbsenceRange(absenceStartDate.value, absenceEndDate.value);
+}
+
+absenceStartDate.addEventListener("change", updateAbsenceRange);
+absenceEndDate.addEventListener("change", updateAbsenceRange);
+
+async function fillExampleData({ onlyMissing = false, focus = false, enablePreview = false } = {}) {
   setHidden(formError, true);
   useExampleButton.disabled = true;
   useExampleButton.textContent = "불러오는 중…";
   try {
-    cameraImageInput.value = "";
-    document.getElementById("absence-type").value = "출근";
-    document.getElementById("absence-duration").value = "약 9시간 30분 (오전 8시 30분부터 오후 6시까지 예정)";
-    document.getElementById("last-check-time").value = localDateTimeHoursAgo(2);
-    document.getElementById("available-contact").value = "가족";
-    document.getElementById("observed-facts").value =
-      "오후 거실 홈캠 캡처에서 고양이 두 마리가 확인됩니다. 회색 줄무늬 고양이는 소파 왼쪽 좌석에 몸을 낮추고 앞을 바라보고 있으며, 흰 고양이는 소파 앞 바닥에 배를 댄 자세로 누워 있습니다. 두 고양이 모두 눈을 뜨고 있고 이미지 안에서 큰 물건이 쓰러지거나 주변이 어질러진 모습은 보이지 않습니다. 다만 물그릇, 사료그릇과 화장실은 카메라 촬영 범위에 포함되지 않아 현재 상태를 확인할 수 없습니다.";
-    document.getElementById("concern-reason").value =
-      "평소에는 오후에 두 고양이가 각자 다른 방으로 이동하거나 창가를 오가는 모습이 자주 보이는데, 오늘은 약 두 시간 동안 거실 주변에서 비슷한 자세로 머무는 것처럼 보여 추가 확인이 필요하다고 느꼈습니다. 사진 한 장만으로 실제 움직임, 식사, 음수, 배변 여부를 알 수 없으므로 가족이 현장에서 확인할 항목을 정리하고 싶습니다.";
-    document.getElementById("device-alert").value =
-      "오후 3시 42분 거실 카메라 움직임 감지 알림 이후 추가 움직임 알림이 기록되지 않음";
+    const setValue = (id, value) => {
+      const element = document.getElementById(id);
+      if (!onlyMissing || !element.value.trim()) element.value = value;
+    };
+    setValue("absence-type", "출근");
+    setValue("available-contact", "가족");
+    if (!onlyMissing || !absenceStartDate.value) absenceStartDate.value = localDateDaysFromNow(0);
+    if (!onlyMissing || !absenceEndDate.value) absenceEndDate.value = localDateDaysFromNow(2);
+    updateAbsenceRange();
+    setValue("observed-facts", "오후 거실 홈캠 캡처에서 고양이 두 마리가 확인됩니다. 회색 줄무늬 고양이는 소파 왼쪽 좌석에 몸을 낮추고 앞을 바라보고 있으며, 흰 고양이는 소파 앞 바닥에 배를 댄 자세로 누워 있습니다. 두 고양이 모두 눈을 뜨고 있고 이미지 안에서 큰 물건이 쓰러지거나 주변이 어질러진 모습은 보이지 않습니다. 다만 물그릇, 사료그릇과 화장실은 카메라 촬영 범위에 포함되지 않아 현재 상태를 확인할 수 없습니다.");
+    setValue("concern-reason", "평소 활동 시간인데 두 고양이가 약 두 시간 동안 거실 주변의 비슷한 위치에 머무는 이벤트가 감지되었습니다. 사진 한 장만으로 실제 움직임, 식사, 음수, 배변 여부를 알 수 없어 추가 확인이 필요합니다.");
+    setValue("device-alert", "이벤트 감지 Preview · 장시간 움직임 없음 패턴이 감지됨");
+    if (enablePreview) eventDetectionPreview.checked = true;
 
-    const response = await fetch("./assets/default/cat-scene-224.jpg", { cache: "force-cache" });
-    if (!response.ok) throw new Error("예시 이미지를 불러오지 못했습니다.");
-    const blob = await response.blob();
-    const file = new File([blob], "cat-scene-224.jpg", { type: "image/jpeg" });
-    state.imageProcessing = prepareImage(file);
-    const prepared = await state.imageProcessing;
-    prepared.isExample = true;
-    showPreparedImage(prepared, "기본 예시 이미지");
-    document.getElementById("observed-facts").focus();
+    if (!state.processedImage) {
+      cameraImageInput.value = "";
+      const response = await fetch("./assets/default/cat-scene-224.jpg", { cache: "force-cache" });
+      if (!response.ok) throw new Error("예시 이미지를 불러오지 못했습니다.");
+      const blob = await response.blob();
+      const file = new File([blob], "cat-scene-224.jpg", { type: "image/jpeg" });
+      state.imageProcessing = prepareImage(file);
+      const prepared = await state.imageProcessing;
+      prepared.isExample = true;
+      showPreparedImage(prepared, "자동 적용된 기본 예시");
+    }
+    if (focus) document.getElementById("observed-facts").focus();
   } catch (error) {
     formError.textContent = error.message || "예시 데이터를 불러오지 못했습니다.";
     setHidden(formError, false);
+    throw error;
   } finally {
     useExampleButton.disabled = false;
     useExampleButton.textContent = "예시 다시 불러오기";
+  }
+}
+
+useExampleButton.addEventListener("click", async () => {
+  try {
+    await fillExampleData({ focus: true, enablePreview: true });
+  } catch {
+    // 오류 메시지는 fillExampleData에서 표시한다.
   }
 });
 
@@ -373,10 +415,25 @@ caseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   setHidden(formError, true);
 
-  if (!caseForm.checkValidity() || !consent.checked) {
-    formError.textContent = "필수 항목과 개인정보·이미지 처리 동의를 확인해주세요.";
+  if (!consent.checked) {
+    formError.textContent = "분석 전 개인정보·이미지 처리 동의를 확인해주세요.";
     setHidden(formError, false);
-    caseForm.reportValidity();
+    return;
+  }
+
+  const isBlankCase = [
+    document.getElementById("absence-type").value,
+    document.getElementById("available-contact").value,
+    absenceStartDate.value,
+    absenceEndDate.value,
+    document.getElementById("observed-facts").value,
+    document.getElementById("concern-reason").value,
+    document.getElementById("device-alert").value
+  ].every((value) => !String(value).trim()) && !state.processedImage;
+
+  try {
+    await fillExampleData({ onlyMissing: true, enablePreview: isBlankCase });
+  } catch {
     return;
   }
 
@@ -393,17 +450,20 @@ caseForm.addEventListener("submit", async (event) => {
 
   state.caseData = {
     absenceType: document.getElementById("absence-type").value,
-    absenceDuration: document.getElementById("absence-duration").value.trim(),
-    lastCheckTime: document.getElementById("last-check-time").value,
+    absenceStartDate: absenceStartDate.value,
+    absenceEndDate: absenceEndDate.value,
+    absenceDuration: formatAbsenceRange(absenceStartDate.value, absenceEndDate.value),
+    lastCheckTime: absenceEndDate.value,
     availableContact: document.getElementById("available-contact").value,
     observedFacts: document.getElementById("observed-facts").value.trim(),
     concernReason: document.getElementById("concern-reason").value.trim(),
     deviceAlert: document.getElementById("device-alert").value.trim(),
+    eventDetectionPreview: eventDetectionPreview.checked,
     image: state.processedImage
   };
 
   document.getElementById("input-summary").textContent =
-    `${state.caseData.absenceType} · ${state.caseData.absenceDuration} · 마지막 확인 ${state.caseData.lastCheckTime} · 현장 확인 가능 대상 ${state.caseData.availableContact}`;
+    `${state.caseData.absenceType} · 집을 비운 시간 ${state.caseData.absenceDuration} · ${state.caseData.eventDetectionPreview ? "이벤트 감지 Preview · " : ""}현장 확인 가능 대상 ${state.caseData.availableContact}`;
 
   unlockStep(3);
   showScreen("screen-result");

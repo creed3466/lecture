@@ -9,6 +9,9 @@
 - Fallback: Worker 미설정/장애 시 로컬 안전 분석
 - Built-in demo: 사진이 없는 사용자를 위한 224×298 예시 이미지와 상세 상황 입력
 - Notification demo: 실제 전송 없이 카카오톡 알림 도착 장면을 웹에서 재현
+- Date input: Apple Calendar 스타일의 시작일–종료일 부재 일정 선택
+- Event preview: 체크형 이벤트 감지 분석 시나리오
+- Zero-input demo: 2단계 입력을 비우고 제출하면 기본 사진과 예시 상황을 자동 적용
 
 ## 로컬 실행
 

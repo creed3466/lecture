@@ -68,11 +68,14 @@ function validateInput(payload) {
   const caseData = {
     absenceType: cleanText(source.absenceType, 50),
     absenceDuration: cleanText(source.absenceDuration, 80),
+    absenceStartDate: cleanText(source.absenceStartDate, 20),
+    absenceEndDate: cleanText(source.absenceEndDate, 20),
     lastCheckTime: cleanText(source.lastCheckTime, 50),
     availableContact: cleanText(source.availableContact, 50),
     observedFacts: cleanText(source.observedFacts),
     concernReason: cleanText(source.concernReason),
-    deviceAlert: cleanText(source.deviceAlert, 500)
+    deviceAlert: cleanText(source.deviceAlert, 500),
+    eventDetectionPreview: Boolean(source.eventDetectionPreview)
   };
   if (!caseData.observedFacts || !caseData.concernReason) {
     throw new Error("필수 관찰 내용이 없습니다.");
@@ -104,6 +107,7 @@ function buildPrompt(caseData, hasImage) {
 - 사람의 얼굴, 문서, 주소 등 개인정보를 식별하거나 묘사하지 않는다.
 - 각 배열은 핵심 문장 3~5개, 문장당 80자 이내로 작성한다.
 - confidence는 이미지 품질과 관찰 가능성에 대한 신뢰도이지 건강 상태 확률이 아니다. 이미지가 없으면 0이다.
+- eventDetectionPreview가 true이면 실제 자동 감지가 아니라 MVP의 이벤트 감지 시나리오임을 전제로 관찰 내용을 정리한다.
 
 입력 데이터:
 ${JSON.stringify(caseData)}
