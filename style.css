@@ -652,8 +652,11 @@ input::placeholder, textarea::placeholder { color: #a1a1a6; opacity: 1; }
   .card, .workspace-card { width: calc(100% - 28px); margin: 42px auto 74px; padding: 30px 20px; border-radius: 26px; }
   .form-grid, .result-grid { grid-template-columns: 1fr; }
   .vision-stage { grid-column: auto; grid-template-columns: 1fr; }
-  .vision-frame, .vision-frame img { min-height: 260px; }
+  .vision-frame { height: 260px; min-height: 260px; }
+  .vision-frame img { height: 260px; min-height: 0; }
   .vision-frame::after { background: linear-gradient(0deg, rgba(11,31,29,.9), transparent 60%); }
+  .vision-copy { padding: 25px 23px 27px; }
+  .vision-copy > p { margin: 16px 0 22px; font-size: 21px; }
   .vision-stage--text-only { grid-template-columns: 1fr; }
   .vision-stage--text-only .vision-frame { display: none; }
   .result-limit, .relay-choice, .result-grid > .actions { grid-column: auto; }

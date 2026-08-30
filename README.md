@@ -5,7 +5,7 @@
 - Live: https://creed3466.github.io/lecture/
 - Frontend: GitHub Pages 정적 HTML/CSS/JavaScript
 - AI proxy: Cloudflare Worker
-- Model: Gemini 3.5 Flash-Lite
+- Model: Gemini 3.1 Flash-Lite
 - Fallback: Worker 미설정/장애 시 로컬 안전 분석
 - Built-in demo: 사진이 없는 사용자를 위한 224×298 예시 이미지와 상세 상황 입력
 

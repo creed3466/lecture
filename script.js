@@ -10,7 +10,9 @@ const state = {
   imageProcessing: null
 };
 
-const AI_ENDPOINT = String(window.CATGUARD_CONFIG?.aiEndpoint || "").trim();
+const AI_ENDPOINT = String(
+  window.CATGUARD_CONFIG?.aiEndpoint || "https://catguard-relay-ai.creed3466.workers.dev/analyze"
+).trim();
 
 const screens = [...document.querySelectorAll(".screen")];
 const progressSteps = [...document.querySelectorAll("[data-progress]")];
