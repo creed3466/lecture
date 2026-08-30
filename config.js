@@ -2,5 +2,5 @@
 window.CATGUARD_CONFIG = {
   aiEndpoint: "https://catguard-relay-ai.creed3466.workers.dev/analyze",
   collectEndpoint: "https://catguard-relay-ai.creed3466.workers.dev/collect",
-  testMode: true
+  testMode: false
 };

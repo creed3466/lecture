@@ -12,7 +12,8 @@
 - Date input: Apple Calendar 스타일의 시작일–종료일 부재 일정 선택
 - Event preview: 체크형 이벤트 감지 분석 시나리오
 - Zero-input demo: 2단계 입력을 비우고 제출하면 기본 사진과 예시 상황을 자동 적용
-- Test mode: `config.js`의 `testMode: true`에서 Gemini API를 호출하지 않고 고정 분석 응답 사용
+- Live AI mode: 현재 `config.js`의 `testMode: false`로 선택한 사진을 Gemini가 실제 분석
+- 비용 없는 파이프라인 점검이 필요할 때만 `testMode: true`로 바꾸면 고정 분석 응답 사용
 - Database: Google Sheets의 `event_log`, `feedback`, `dashboard`, `codebook` 4개 탭
 
 ## 로컬 실행

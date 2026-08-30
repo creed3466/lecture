@@ -8,7 +8,8 @@ const state = {
   feedback: null,
   eventId: null,
   processedImage: null,
-  imageProcessing: null
+  imageProcessing: null,
+  imageRevision: 0
 };
 
 const AI_ENDPOINT = String(
@@ -300,6 +301,7 @@ function updateAiSubmitState() {
 consent.addEventListener("change", updateAiSubmitState);
 
 function clearPreparedImage() {
+  state.imageRevision += 1;
   state.processedImage = null;
   state.imageProcessing = null;
   cameraImageInput.value = "";
@@ -316,6 +318,10 @@ function showPreparedImage(prepared, label = "위치정보 제거") {
 
 cameraImageInput.addEventListener("change", () => {
   const file = cameraImageInput.files[0];
+  const imageRevision = ++state.imageRevision;
+  state.processedImage = null;
+  imagePreview.removeAttribute("src");
+  setHidden(imagePreviewWrap, true);
   setHidden(formError, true);
   if (!file) {
     clearPreparedImage();
@@ -329,10 +335,12 @@ cameraImageInput.addEventListener("change", () => {
   }
   state.imageProcessing = prepareImage(file)
     .then((prepared) => {
-      showPreparedImage(prepared);
+      if (imageRevision !== state.imageRevision) return null;
+      showPreparedImage(prepared, `${file.name} · 위치정보 제거`);
       return prepared;
     })
     .catch((error) => {
+      if (imageRevision !== state.imageRevision) return null;
       clearPreparedImage();
       formError.textContent = error.message;
       setHidden(formError, false);
@@ -387,7 +395,7 @@ async function fillExampleData({ onlyMissing = false, focus = false, enablePrevi
     setValue("device-alert", "이벤트 감지 Preview · 장시간 움직임 없음 패턴이 감지됨");
     if (enablePreview) eventDetectionPreview.checked = true;
 
-    if (!state.processedImage) {
+    if (!state.processedImage && !state.imageProcessing) {
       cameraImageInput.value = "";
       const response = await fetch("./assets/default/cat-scene-224.jpg", { cache: "force-cache" });
       if (!response.ok) throw new Error("예시 이미지를 불러오지 못했습니다.");
@@ -435,7 +443,7 @@ caseForm.addEventListener("submit", async (event) => {
     document.getElementById("observed-facts").value,
     document.getElementById("concern-reason").value,
     document.getElementById("device-alert").value
-  ].every((value) => !String(value).trim()) && !state.processedImage;
+  ].every((value) => !String(value).trim()) && !state.processedImage && !state.imageProcessing;
 
   try {
     await fillExampleData({ onlyMissing: true, enablePreview: isBlankCase });
@@ -607,13 +615,23 @@ copyButton.addEventListener("click", async () => {
 
 const sendIntentInputs = [...document.querySelectorAll('input[name="sendIntent"]')];
 const feedbackFromRelay = document.getElementById("feedback-from-relay");
+const relayContentWrap = document.getElementById("relay-content-wrap");
+const relayDeclineComplete = document.getElementById("relay-decline-complete");
 sendIntentInputs.forEach((input) => {
   input.addEventListener("change", () => {
     state.sendIntent = input.value;
     feedbackFromRelay.disabled = false;
+    feedbackFromRelay.innerHTML = input.value === "없다"
+      ? "감사합니다로 마치기 <span>→</span>"
+      : "피드백 남기기 <span>→</span>";
   });
 });
 feedbackFromRelay.addEventListener("click", () => {
+  if (state.sendIntent === "없다") {
+    setHidden(relayContentWrap, true);
+    setHidden(relayDeclineComplete, false);
+    return;
+  }
   unlockStep(5);
   showScreen("screen-feedback");
 });
