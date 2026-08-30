@@ -1,5 +1,5 @@
 const DEFAULT_ORIGIN = "https://creed3466.github.io";
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-3.5-flash-lite";
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -152,6 +152,7 @@ async function analyze(request, env, origin) {
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: 1400,
+          thinkingConfig: { thinkingLevel: "minimal" },
           responseMimeType: "application/json",
           responseJsonSchema: RESPONSE_SCHEMA
         }
