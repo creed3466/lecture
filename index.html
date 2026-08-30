@@ -3,73 +3,111 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="CatGuard Relay 웹 MVP" />
-  <title>CatGuard Relay MVP</title>
+  <meta name="description" content="멀리 있어도 안심이 이어지는 CatGuard Relay 웹 MVP" />
+  <meta name="theme-color" content="#f5f5f7" />
+  <title>CatGuard Relay — 안심을 연결하다</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <main class="app-shell">
-    <header class="brand">
-      <div class="brand-mark">C</div>
-      <div>
-        <p class="eyebrow">Web MVP</p>
-        <h1>CatGuard Relay</h1>
-      </div>
-    </header>
+  <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 
-    <div class="progress" aria-label="진행 단계">
-      <span class="progress__step is-active" data-progress="1">1</span>
-      <span class="progress__line"></span>
-      <span class="progress__step" data-progress="2">2</span>
-      <span class="progress__line"></span>
-      <span class="progress__step" data-progress="3">3</span>
-      <span class="progress__line"></span>
-      <span class="progress__step" data-progress="4">4</span>
-      <span class="progress__line"></span>
-      <span class="progress__step" data-progress="5">5</span>
+  <header class="global-nav" id="top">
+    <div class="global-nav__inner">
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-controls="global-menu" aria-expanded="false" aria-label="메뉴 열기"><span></span><span></span></button>
+      <a class="wordmark" href="#top" aria-label="CatGuard Relay 홈">
+        <span class="wordmark__symbol" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 13.5 6 6l6 3.5A11 11 0 0 1 16 8.8a11 11 0 0 1 4 .7L26 6l-2 7.5a9.4 9.4 0 0 1 1.4 4.8c0 5.2-4.2 8.7-9.4 8.7s-9.4-3.5-9.4-8.7A9.4 9.4 0 0 1 8 13.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12.2 18.1h.1M19.7 18.1h.1M14.1 22c1.2.8 2.6.8 3.8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+        <span>CatGuard <strong>Relay</strong></span>
+      </a>
+      <nav class="global-menu" id="global-menu" aria-label="주요 메뉴">
+        <button type="button" data-landing-anchor="service-overview">서비스</button>
+        <button type="button" data-landing-anchor="flow-overview">작동 방식</button>
+        <button type="button" data-landing-anchor="principles">안심 원칙</button>
+      </nav>
+      <button class="nav-cta" type="button" data-landing-anchor="experience">MVP 시작</button>
     </div>
+  </header>
+
+  <nav class="flow-nav" aria-label="MVP 진행 단계">
+    <div class="flow-nav__inner">
+      <div class="flow-nav__title"><strong>안심 플로우</strong><span id="flow-status">1 / 5</span></div>
+      <div class="flow-tabs" role="tablist" aria-label="진행 단계 탭">
+        <button class="flow-tab is-active" type="button" role="tab" data-progress="1" data-nav-screen="screen-landing" aria-current="step"><span>01</span><em>시작</em></button>
+        <button class="flow-tab" type="button" role="tab" data-progress="2" data-nav-screen="screen-input" disabled><span>02</span><em>상황 입력</em></button>
+        <button class="flow-tab" type="button" role="tab" data-progress="3" data-nav-screen="screen-result" disabled><span>03</span><em>검토</em></button>
+        <button class="flow-tab" type="button" role="tab" data-progress="4" data-nav-screen="screen-relay" disabled><span>04</span><em>연결</em></button>
+        <button class="flow-tab" type="button" role="tab" data-progress="5" data-nav-screen="screen-feedback" disabled><span>05</span><em>피드백</em></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-shell" id="main-content">
 
     <!-- Screen A: Landing / target experience check -->
-    <section class="screen is-active" id="screen-landing" data-step="1">
-      <div class="card hero-card">
-        <p class="eyebrow">최근 실제 경험으로 테스트합니다</p>
-        <h2>원격으로 확인한 뒤에도<br />누군가 직접 가봐야 할 때가 있나요?</h2>
-        <p class="lead">
-          CatGuard Relay는 집을 오래 비운 동안 반려묘의 원격 확인과 실제 현장 확인 사이의 공백을 줄이는 흐름을 검증하는 MVP입니다.
-        </p>
-
-        <fieldset class="choice-group">
-          <legend>최근 1개월 내 장시간 외출·여행·출장 중 반려묘를 집에 두고 홈캠·CCTV로 확인한 경험이 있나요?</legend>
-          <label class="choice-card">
-            <input type="radio" name="recentExperience" value="yes" />
-            <span>
-              <strong>경험 있음</strong>
-              <small>최근 실제 사례 1건으로 테스트합니다.</small>
-            </span>
-          </label>
-          <label class="choice-card">
-            <input type="radio" name="recentExperience" value="no" />
-            <span>
-              <strong>경험 없음</strong>
-              <small>이번 핵심 가설 검증 표본에서는 제외됩니다.</small>
-            </span>
-          </label>
-        </fieldset>
-
-        <div id="not-target-note" class="notice notice--muted hidden" role="status">
-          이번 테스트는 최근 원격 확인 경험이 있는 보호자를 대상으로 합니다.
+    <section class="screen is-active" id="screen-landing" data-step="1" tabindex="-1">
+      <div class="hero" id="service-overview">
+        <div class="hero__copy">
+          <p class="eyebrow"><span></span> Care, connected.</p>
+          <h1>멀리 있어도,<br /><span>안심은 이어지도록.</span></h1>
+          <p class="hero__lead">홈캠 너머의 걱정을 관찰 가능한 사실로 정리하고,<br class="desktop-only" /> 가장 믿을 수 있는 사람의 현장 확인까지 연결합니다.</p>
+          <div class="hero__actions">
+            <button class="button button--primary button--large" type="button" data-landing-anchor="experience">최근 경험으로 시작</button>
+            <button class="text-link" type="button" data-landing-anchor="flow-overview">어떻게 작동하나요 <span>→</span></button>
+          </div>
+          <div class="trust-row" aria-label="서비스 특징"><span>외부 전송 없음</span><span>진단하지 않음</span><span>사람과 연결</span></div>
         </div>
 
-        <button class="button button--primary" id="start-button" disabled>시작하기</button>
+        <div class="hero-art" aria-label="CatGuard Relay 안심 상태 화면 미리보기">
+          <div class="aura aura--one"></div><div class="aura aura--two"></div>
+          <div class="device">
+            <div class="device__top"><span>9:41</span><i></i><b>●●●</b></div>
+            <div class="device__brand"><span class="mini-symbol">C</span> CatGuard</div>
+            <div class="status-orbit"><div class="status-orbit__ring"></div><div class="status-orbit__core"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 28 14 11l13 8a25 25 0 0 1 10 0l13-8-4 17c2.6 3.7 4 8.2 4 12.7C50 52 42 58 32 58s-18-6-18-17.3c0-4.5 1.4-9 4-12.7Z" fill="currentColor"/></svg></div></div>
+            <p class="device__label">Relay status</p><h2>연결 준비 완료</h2><p class="device__sub">확인된 사실을 바탕으로<br />가족에게 요청할 수 있어요.</p>
+            <div class="device__signal"><span></span><span></span><span></span><span></span></div>
+            <div class="device__footer"><span>HOME</span><span class="is-current">RELAY</span><span>LOG</span></div>
+          </div>
+          <div class="floating-card floating-card--top"><i></i><span><small>마지막 확인</small><strong>오후 3:42</strong></span></div>
+          <div class="floating-card floating-card--bottom"><span class="avatar">J</span><span><small>현장 확인</small><strong>가족 연결 가능</strong></span><b>✓</b></div>
+        </div>
       </div>
+
+      <section class="flow-story" id="flow-overview" aria-labelledby="flow-story-title">
+        <div class="story-heading"><p class="eyebrow">One calm flow</p><h2 id="flow-story-title">걱정에서 행동까지,<br />한 번에 명확하게.</h2></div>
+        <div class="story-grid">
+          <article class="story-card story-card--dark"><span class="story-card__number">01</span><div class="story-card__visual radar"><i></i><i></i><i></i><b></b></div><h3>보이는 사실만 정리</h3><p>추측과 관찰을 분리해 지금 아는 것과 모르는 것을 선명하게 보여줍니다.</p></article>
+          <article class="story-card story-card--mint"><span class="story-card__number">02</span><div class="story-card__visual connection"><span>C</span><i></i><span>J</span></div><h3>가장 가까운 사람과 연결</h3><p>가족, 지인, 펫시터에게 바로 보낼 수 있는 현장 확인 문구를 만듭니다.</p></article>
+          <article class="story-card story-card--light"><span class="story-card__number">03</span><div class="story-card__visual decision"><span>관찰</span><i>→</i><span>확인</span></div><h3>결정권은 보호자에게</h3><p>진단하거나 단정하지 않습니다. 최종 판단은 언제나 보호자가 내립니다.</p></article>
+        </div>
+      </section>
+
+      <section class="principles" id="principles" aria-labelledby="principles-title">
+        <p class="eyebrow">Designed for trust</p><h2 id="principles-title">기술은 조용하게.<br />안심은 분명하게.</h2>
+        <div class="principle-list">
+          <article><span>01</span><div><h3>Private by design</h3><p>입력 정보는 이 데모에서 외부 서버로 전송되거나 저장되지 않습니다.</p></div></article>
+          <article><span>02</span><div><h3>Human in the loop</h3><p>자동 판단보다 실제로 확인할 수 있는 사람과의 연결을 우선합니다.</p></div></article>
+          <article><span>03</span><div><h3>Calm, not alarming</h3><p>불안을 키우는 경고 대신 다음 행동을 차분하게 정리합니다.</p></div></article>
+        </div>
+      </section>
+
+      <section class="experience-panel" id="experience" aria-labelledby="experience-title">
+        <div class="experience-panel__intro"><p class="eyebrow">Try the flow</p><h2 id="experience-title">최근의 실제 경험으로<br />안심 플로우를 시작해보세요.</h2><p>약 3분이 걸립니다. 별도 가입이나 API 키는 필요하지 않습니다.</p></div>
+        <div class="experience-panel__form">
+          <fieldset class="choice-group choice-group--hero"><legend>최근 1개월 내 장시간 외출·여행·출장 중 반려묘를 집에 두고 홈캠·CCTV로 확인한 경험이 있나요?</legend>
+            <label class="choice-card"><input type="radio" name="recentExperience" value="yes" /><span class="choice-card__icon">✓</span><span><strong>경험 있음</strong><small>최근 실제 사례 1건으로 테스트합니다.</small></span></label>
+            <label class="choice-card"><input type="radio" name="recentExperience" value="no" /><span class="choice-card__icon">—</span><span><strong>경험 없음</strong><small>이번 핵심 가설 검증 표본에서는 제외됩니다.</small></span></label>
+          </fieldset>
+          <div id="not-target-note" class="notice notice--muted hidden" role="status">이번 테스트는 최근 원격 확인 경험이 있는 보호자를 대상으로 합니다.</div>
+          <button class="button button--primary button--full" id="start-button" disabled>안심 플로우 시작하기 <span>→</span></button>
+        </div>
+      </section>
     </section>
 
     <!-- Screen B: Situation / observation input -->
-    <section class="screen" id="screen-input" data-step="2">
-      <div class="card">
+    <section class="screen" id="screen-input" data-step="2" tabindex="-1">
+      <div class="card workspace-card">
         <div class="section-heading">
-          <p class="eyebrow">Step 2</p>
-          <h2>최근 실제 사례 1건을 입력해주세요</h2>
+          <p class="eyebrow">Step 2 · Observe</p>
+          <h2>최근 실제 사례를<br />들려주세요.</h2>
           <p>로컬 데모 처리기는 입력한 사실만 정리하며, 반려묘의 질병·응급·안전 상태를 진단하지 않습니다.</p>
         </div>
 
@@ -143,18 +181,18 @@
 
           <div class="actions">
             <button type="button" class="button button--ghost" data-back="screen-landing">이전</button>
-            <button type="submit" class="button button--primary" id="ai-submit-button" disabled>AI로 정리하기</button>
+            <button type="submit" class="button button--primary" id="ai-submit-button" disabled>사실 정리하기 <span>→</span></button>
           </div>
         </form>
       </div>
     </section>
 
     <!-- Screen C: AI processing / review result -->
-    <section class="screen" id="screen-result" data-step="3">
-      <div class="card">
+    <section class="screen" id="screen-result" data-step="3" tabindex="-1">
+      <div class="card workspace-card">
         <div class="section-heading">
-          <p class="eyebrow">Step 3</p>
-          <h2>현장확인 검토 결과</h2>
+          <p class="eyebrow">Step 3 · Review</p>
+          <h2>현장 확인이 필요한지<br />차분하게 살펴볼게요.</h2>
           <p>사용자가 입력한 사실과 확인되지 않은 부분을 구분해 보여줍니다.</p>
         </div>
 
@@ -215,18 +253,18 @@
 
           <div class="actions">
             <button type="button" class="button button--ghost" data-back="screen-input">입력 수정</button>
-            <button type="button" class="button button--primary" id="relay-next-button" disabled>다음</button>
+            <button type="button" class="button button--primary" id="relay-next-button" disabled>다음 <span>→</span></button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Screen D: Relay request message -->
-    <section class="screen" id="screen-relay" data-step="4">
-      <div class="card">
+    <section class="screen" id="screen-relay" data-step="4" tabindex="-1">
+      <div class="card workspace-card">
         <div class="section-heading">
-          <p class="eyebrow">Step 4</p>
-          <h2>현장 확인 요청 내용</h2>
+          <p class="eyebrow">Step 4 · Connect</p>
+          <h2>부탁은 간결하게.<br />확인은 정확하게.</h2>
           <p id="relay-target-label"></p>
         </div>
 
@@ -243,7 +281,7 @@
           </article>
 
           <div class="inline-actions">
-            <button type="button" class="button button--secondary" id="copy-message-button">복사</button>
+            <button type="button" class="button button--secondary" id="copy-message-button">요청 문구 복사</button>
             <span id="copy-status" class="copy-status" aria-live="polite"></span>
           </div>
 
@@ -265,18 +303,18 @@
 
           <div class="actions">
             <button type="button" class="button button--ghost" data-back="screen-result">이전</button>
-            <button type="button" class="button button--primary" id="feedback-from-relay" disabled>피드백 남기기</button>
+            <button type="button" class="button button--primary" id="feedback-from-relay" disabled>피드백 남기기 <span>→</span></button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Screen E: Feedback -->
-    <section class="screen" id="screen-feedback" data-step="5">
-      <div class="card">
+    <section class="screen" id="screen-feedback" data-step="5" tabindex="-1">
+      <div class="card workspace-card">
         <div class="section-heading">
-          <p class="eyebrow">Step 5</p>
-          <h2>MVP 피드백</h2>
+          <p class="eyebrow">Step 5 · Feedback</p>
+          <h2>당신의 경험이<br />다음 안심을 만듭니다.</h2>
           <p>이번 테스트의 핵심 가설 확인을 위한 즉시 피드백입니다.</p>
         </div>
 
@@ -334,8 +372,11 @@
     </section>
   </main>
 
+  <footer class="site-footer">
+    <div><a class="wordmark" href="#top"><span class="wordmark__symbol">C</span><span>CatGuard <strong>Relay</strong></span></a><p>Remote care, human connection.</p></div>
+    <p>© 2026 CatGuard Relay · Web MVP</p>
+  </footer>
+
   <script src="./script.js"></script>
 </body>
 </html>
-
-

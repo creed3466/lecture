@@ -10,6 +10,18 @@ const state = {
 
 const screens = [...document.querySelectorAll(".screen")];
 const progressSteps = [...document.querySelectorAll("[data-progress]")];
+const flowStatus = document.getElementById("flow-status");
+const globalNav = document.querySelector(".global-nav");
+const menuToggle = document.getElementById("menu-toggle");
+let maxUnlockedStep = 1;
+
+function unlockStep(step) {
+  maxUnlockedStep = Math.max(maxUnlockedStep, step);
+  progressSteps.forEach((el) => {
+    const n = Number(el.dataset.progress);
+    el.disabled = n > maxUnlockedStep;
+  });
+}
 
 function showScreen(id) {
   screens.forEach((screen) => screen.classList.toggle("is-active", screen.id === id));
@@ -19,9 +31,35 @@ function showScreen(id) {
     const n = Number(el.dataset.progress);
     el.classList.toggle("is-active", n === step);
     el.classList.toggle("is-complete", n < step);
+    if (n === step) el.setAttribute("aria-current", "step");
+    else el.removeAttribute("aria-current");
   });
+  flowStatus.textContent = `${step} / 5`;
+  document.title = `${step}단계 · CatGuard Relay`;
   window.scrollTo({ top: 0, behavior: "smooth" });
+  window.setTimeout(() => active.focus({ preventScroll: true }), 300);
 }
+
+progressSteps.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    if (!tab.disabled) showScreen(tab.dataset.navScreen);
+  });
+});
+
+document.querySelectorAll("[data-landing-anchor]").forEach((button) => {
+  button.addEventListener("click", () => {
+    showScreen("screen-landing");
+    globalNav.classList.remove("is-menu-open");
+    menuToggle.setAttribute("aria-expanded", "false");
+    window.setTimeout(() => document.getElementById(button.dataset.landingAnchor)?.scrollIntoView({ behavior: "smooth" }), 80);
+  });
+});
+
+menuToggle.addEventListener("click", () => {
+  const open = globalNav.classList.toggle("is-menu-open");
+  menuToggle.setAttribute("aria-expanded", String(open));
+  menuToggle.setAttribute("aria-label", open ? "메뉴 닫기" : "메뉴 열기");
+});
 
 function setHidden(el, hidden) {
   el.classList.toggle("hidden", hidden);
@@ -112,6 +150,7 @@ recentExperienceInputs.forEach((input) => {
 
 startButton.addEventListener("click", () => {
   if (state.recentExperience === "yes") {
+    unlockStep(2);
     showScreen("screen-input");
   } else {
     setHidden(notTargetNote, false);
@@ -161,6 +200,7 @@ caseForm.addEventListener("submit", async (event) => {
   document.getElementById("input-summary").textContent =
     `${state.caseData.absenceType} · ${state.caseData.absenceDuration} · 마지막 확인 ${state.caseData.lastCheckTime} · 현장 확인 가능 대상 ${state.caseData.availableContact}`;
 
+  unlockStep(3);
   showScreen("screen-result");
   await runReview();
 });
@@ -206,12 +246,14 @@ relayNextButton.addEventListener("click", async () => {
 
   if (state.relayTarget === "지금은 요청하지 않음") {
     state.sendIntent = "없다";
+    unlockStep(5);
     showScreen("screen-feedback");
     return;
   }
 
   document.getElementById("relay-target-label").textContent =
     `${state.relayTarget}에게 보낼 수 있는 현장 확인 요청 내용을 정리합니다.`;
+  unlockStep(4);
   showScreen("screen-relay");
   await runRelayMessage();
 });
@@ -258,7 +300,10 @@ sendIntentInputs.forEach((input) => {
     feedbackFromRelay.disabled = false;
   });
 });
-feedbackFromRelay.addEventListener("click", () => showScreen("screen-feedback"));
+feedbackFromRelay.addEventListener("click", () => {
+  unlockStep(5);
+  showScreen("screen-feedback");
+});
 
 // Back buttons
 document.querySelectorAll("[data-back]").forEach((button) => {
@@ -311,5 +356,3 @@ feedbackForm.addEventListener("submit", (event) => {
   feedbackForm.classList.add("hidden");
   setHidden(feedbackComplete, false);
 });
-
-
