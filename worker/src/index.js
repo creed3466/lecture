@@ -91,7 +91,29 @@ function validateInput(payload) {
     if (data.length > 2_800_000) throw new Error("분석 이미지가 너무 큽니다.");
     image = { mimeType, data };
   }
-  return { caseData, image };
+  return { caseData, image, testMode: payload.testMode === true };
+}
+
+function buildTestResult(caseData, hasImage) {
+  return {
+    mode: "test",
+    scene_summary: hasImage
+      ? "거실 소파 위와 아래에 고양이 두 마리가 머무는 테스트 장면입니다."
+      : "입력한 설명을 바탕으로 이벤트 감지 테스트 결과를 만들었습니다.",
+    image_observations: hasImage
+      ? ["소파 위에 회색 줄무늬 고양이가 있습니다.", "소파 앞 바닥에 흰색 고양이가 있습니다.", "물과 사료 상태는 화면에서 확인되지 않습니다."]
+      : ["테스트 모드에서 이미지가 첨부되지 않았습니다."],
+    observed_facts: [
+      `집을 비운 시간은 ${caseData.absenceDuration || "확인 불가"}입니다.`,
+      "장시간 움직임 없음 이벤트 감지 Preview가 선택되었습니다.",
+      "이 결과는 Gemini API를 호출하지 않은 고정 테스트 응답입니다."
+    ],
+    unknown_or_missing: ["현재 움직임과 건강 상태는 사진 한 장으로 확정할 수 없습니다.", "식사·음수·배변 여부는 확인되지 않았습니다."],
+    reasons_to_consider_check: ["평소 활동 시간과 다른 정적인 패턴이 입력되었습니다.", "보호자가 필요하다고 판단하면 현장 확인을 요청할 수 있습니다."],
+    onsite_checklist: ["고양이의 위치와 반응 확인", "물과 사료의 남은 양 확인", "화장실과 주변 환경 확인"],
+    available_person: caseData.availableContact || "확인 불가",
+    confidence: hasImage ? 88 : 0
+  };
 }
 
 function buildPrompt(caseData, hasImage) {
@@ -132,7 +154,6 @@ function validateModelResult(value, fallbackPerson) {
 }
 
 async function analyze(request, env, origin) {
-  if (!env.GEMINI_API_KEY) return json({ error: "AI 서버 설정이 완료되지 않았습니다." }, 503, origin);
   const contentLength = Number(request.headers.get("Content-Length") || 0);
   if (contentLength > 3_200_000) return json({ error: "요청 크기가 너무 큽니다." }, 413, origin);
 
@@ -142,6 +163,11 @@ async function analyze(request, env, origin) {
   } catch (error) {
     return json({ error: error.message || "요청을 읽지 못했습니다." }, 400, origin);
   }
+
+  if (input.testMode) {
+    return json(buildTestResult(input.caseData, Boolean(input.image)), 200, origin);
+  }
+  if (!env.GEMINI_API_KEY) return json({ error: "AI 서버 설정이 완료되지 않았습니다." }, 503, origin);
 
   const parts = [{ text: buildPrompt(input.caseData, Boolean(input.image)) }];
   if (input.image) parts.push({ inlineData: input.image });
@@ -188,17 +214,80 @@ async function analyze(request, env, origin) {
   }
 }
 
+function validateCollection(payload) {
+  if (!payload || typeof payload !== "object" || !payload.event || !payload.feedback) {
+    throw new Error("저장 데이터 형식이 올바르지 않습니다.");
+  }
+  const source = payload.event;
+  const feedback = payload.feedback;
+  const eventId = cleanText(source.eventId, 50);
+  if (!/^[0-9a-f-]{20,50}$/i.test(eventId)) throw new Error("이벤트 ID가 올바르지 않습니다.");
+  const allowed = (value, choices, fallback) => choices.includes(value) ? value : fallback;
+  return {
+    testMode: payload.testMode === true,
+    event: {
+      eventId,
+      absenceStart: cleanText(source.absenceStart, 20),
+      absenceEnd: cleanText(source.absenceEnd, 20),
+      absenceDays: Math.min(365, Math.max(1, Math.round(Number(source.absenceDays) || 1))),
+      inputSource: allowed(source.inputSource, ["직접 작성", "기본 예시"], "기본 예시"),
+      eventPreview: Boolean(source.eventPreview),
+      imageSource: allowed(source.imageSource, ["직접 사진", "예시 사진", "없음"], "없음"),
+      analysisMode: allowed(source.analysisMode, ["gemini", "test", "local"], "test"),
+      confidence: Math.min(100, Math.max(0, Math.round(Number(source.confidence) || 0))),
+      sceneSummary: cleanText(source.sceneSummary, 180),
+      detectedCase: allowed(source.detectedCase, ["장시간 움직임 없음", "위험 구역 진입", "갑작스러운 넘어짐", "반복 행동 증가", "생활 환경 변화", "개체 간 충돌"], "생활 환경 변화"),
+      relayTarget: allowed(source.relayTarget, ["가족", "지인", "펫시터", "지금은 요청하지 않음"], "지금은 요청하지 않음"),
+      notificationIntent: allowed(source.notificationIntent, ["있다", "없다"], "없다")
+    },
+    feedback: {
+      problemFrequency: allowed(feedback.problemFrequency, ["거의 없음", "가끔", "자주", "거의 매번"], "가끔"),
+      aiHelpful: allowed(feedback.aiHelpful, ["예", "아니오"], "아니오"),
+      relayIntentFeedback: allowed(feedback.relayIntentFeedback, ["예", "아니오"], "아니오"),
+      moreUseful: allowed(feedback.moreUseful, ["예", "아니오"], "아니오"),
+      payIntent: allowed(feedback.payIntent, ["있다", "없다", "모르겠다"], "모르겠다")
+    }
+  };
+}
+
+async function collect(request, env, origin) {
+  let data;
+  try {
+    data = validateCollection(await request.json());
+  } catch (error) {
+    return json({ error: error.message || "저장 데이터를 읽지 못했습니다." }, 400, origin);
+  }
+
+  if (!env.SHEETS_WEBHOOK_URL) {
+    return json({ accepted: true, stored: false, pipeline: "validated_only", eventId: data.event.eventId }, 202, origin);
+  }
+
+  const response = await fetch(env.SHEETS_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...data, token: env.SHEETS_WEBHOOK_TOKEN || "" })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || result.ok !== true) {
+    console.error("Sheets webhook failed", response.status);
+    return json({ error: "Google Sheets 저장에 실패했습니다." }, 502, origin);
+  }
+  return json({ accepted: true, stored: true, pipeline: "google_sheets", eventId: data.event.eventId }, 200, origin);
+}
+
 export default {
   async fetch(request, env) {
     const origin = allowedOrigin(request, env);
     if (!origin) return new Response("Forbidden", { status: 403 });
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
     const url = new URL(request.url);
-    if (request.method !== "POST" || url.pathname !== "/analyze") {
+    if (request.method !== "POST" || !["/analyze", "/collect"].includes(url.pathname)) {
       return json({ error: "Not found" }, 404, origin);
     }
     try {
-      return await analyze(request, env, origin);
+      return url.pathname === "/analyze"
+        ? await analyze(request, env, origin)
+        : await collect(request, env, origin);
     } catch (error) {
       console.error("Unhandled worker error", error?.message);
       return json({ error: "일시적인 서버 오류가 발생했습니다." }, 500, origin);

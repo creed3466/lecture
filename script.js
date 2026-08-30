@@ -6,6 +6,7 @@ const state = {
   relayMessage: null,
   sendIntent: null,
   feedback: null,
+  eventId: null,
   processedImage: null,
   imageProcessing: null
 };
@@ -13,6 +14,10 @@ const state = {
 const AI_ENDPOINT = String(
   window.CATGUARD_CONFIG?.aiEndpoint || "https://catguard-relay-ai.creed3466.workers.dev/analyze"
 ).trim();
+const COLLECT_ENDPOINT = String(
+  window.CATGUARD_CONFIG?.collectEndpoint || "https://catguard-relay-ai.creed3466.workers.dev/collect"
+).trim();
+const TEST_MODE = window.CATGUARD_CONFIG?.testMode !== false;
 
 const screens = [...document.querySelectorAll(".screen")];
 const progressSteps = [...document.querySelectorAll("[data-progress]")];
@@ -193,7 +198,7 @@ function normalizeReview(payload) {
     available_person: normalizeSentence(payload.available_person) || state.caseData.availableContact || "확인 불가",
     scene_summary: normalizeSentence(payload.scene_summary) || "이미지와 설명을 함께 살펴봤습니다.",
     confidence: clamp(payload.confidence, 0, 100),
-    mode: "gemini"
+    mode: payload.mode === "test" ? "test" : "gemini"
   };
 }
 
@@ -219,7 +224,8 @@ async function requestAiReview(caseData) {
           deviceAlert: caseData.deviceAlert,
           eventDetectionPreview: caseData.eventDetectionPreview
         },
-        image: caseData.image ? { mimeType: caseData.image.mimeType, data: caseData.image.data } : null
+        image: caseData.image ? { mimeType: caseData.image.mimeType, data: caseData.image.data } : null,
+        testMode: TEST_MODE
       })
     });
     const payload = await response.json().catch(() => ({}));
@@ -505,13 +511,17 @@ async function runReview() {
       setHidden(errorBox, false);
     }
     state.aiReview = result;
-    modeLabel.textContent = result.mode === "gemini" ? "Gemini 멀티모달 분석" : "로컬 안전 분석";
+    modeLabel.textContent = result.mode === "gemini"
+      ? "Gemini 멀티모달 분석"
+      : result.mode === "test"
+        ? "테스트 분석 · Gemini 미사용"
+        : "로컬 안전 분석";
     visionStage.classList.toggle("vision-stage--text-only", !state.caseData.image);
     if (state.caseData.image) analysisImage.src = state.caseData.image.previewUrl;
     else analysisImage.removeAttribute("src");
     document.getElementById("scene-summary").textContent = result.scene_summary;
     confidenceBar.style.width = `${result.confidence}%`;
-    confidenceLabel.textContent = result.mode === "gemini" ? `${result.confidence}%` : "N/A";
+    confidenceLabel.textContent = result.mode === "local" ? "N/A" : `${result.confidence}%`;
     renderList(document.getElementById("image-observations-list"), result.image_observations);
     renderList(document.getElementById("facts-list"), result.observed_facts);
     renderList(document.getElementById("unknown-list"), result.unknown_or_missing);
@@ -618,7 +628,42 @@ const feedbackForm = document.getElementById("feedback-form");
 const feedbackError = document.getElementById("feedback-error");
 const feedbackComplete = document.getElementById("feedback-complete");
 
-feedbackForm.addEventListener("submit", (event) => {
+async function saveMvpData() {
+  const start = new Date(`${state.caseData.absenceStartDate}T00:00:00`);
+  const end = new Date(`${state.caseData.absenceEndDate}T00:00:00`);
+  const absenceDays = Math.max(1, Math.round((end - start) / 86400000));
+  state.eventId ||= crypto.randomUUID();
+  const isExample = Boolean(state.caseData.image?.isExample);
+  const payload = {
+    testMode: TEST_MODE,
+    event: {
+      eventId: state.eventId,
+      absenceStart: state.caseData.absenceStartDate,
+      absenceEnd: state.caseData.absenceEndDate,
+      absenceDays,
+      inputSource: isExample ? "기본 예시" : "직접 작성",
+      eventPreview: state.caseData.eventDetectionPreview,
+      imageSource: isExample ? "예시 사진" : state.caseData.image ? "직접 사진" : "없음",
+      analysisMode: state.aiReview?.mode || "local",
+      confidence: state.aiReview?.confidence || 0,
+      sceneSummary: state.aiReview?.scene_summary || "확인 불가",
+      detectedCase: state.caseData.eventDetectionPreview ? "장시간 움직임 없음" : "생활 환경 변화",
+      relayTarget: state.relayTarget || "지금은 요청하지 않음",
+      notificationIntent: state.sendIntent || "없다"
+    },
+    feedback: state.feedback
+  };
+  const response = await fetch(COLLECT_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Google Sheets 저장 요청에 실패했습니다.");
+  return result;
+}
+
+feedbackForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   setHidden(feedbackError, true);
 
@@ -648,13 +693,31 @@ feedbackForm.addEventListener("submit", (event) => {
     payIntent
   };
 
-  console.info("CatGuard Relay local MVP feedback (not persisted):", {
+  const submitButton = feedbackForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = "Google Sheets에 저장 중…";
+  let saveResult;
+  try {
+    saveResult = await saveMvpData();
+  } catch (error) {
+    feedbackError.textContent = `${error.message} 입력 내용은 브라우저에 저장하지 않았습니다.`;
+    setHidden(feedbackError, false);
+    submitButton.disabled = false;
+    submitButton.textContent = "다시 저장";
+    return;
+  }
+
+  console.info("CatGuard Relay MVP feedback pipeline:", {
     recentExperience: state.recentExperience,
     relayTarget: state.relayTarget,
     sendIntent: state.sendIntent,
     feedback: state.feedback
   });
 
+  const databaseStatus = document.getElementById("database-save-status");
+  databaseStatus.textContent = saveResult.stored
+    ? `Google Sheets 저장 완료 · 익명 ID ${state.eventId.slice(0, 8)}`
+    : `테스트 페이로드 검증 완료 · Sheets 웹훅 연결 대기 · ${state.eventId.slice(0, 8)}`;
   feedbackForm.reset();
   feedbackForm.classList.add("hidden");
   setHidden(feedbackComplete, false);

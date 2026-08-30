@@ -378,6 +378,10 @@ svg { display: block; }
 .section-heading h2 { margin: 0; font-size: clamp(36px, 5vw, 54px); line-height: 1.06; letter-spacing: -.06em; }
 .section-heading p:last-child, .lead { max-width: 680px; color: var(--muted); line-height: 1.65; }
 .section-heading p:last-child { margin: 18px 0 0; font-size: 15px; }
+.test-mode-banner { margin: -14px 0 28px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(113,87,232,.18); border-radius: 16px; background: linear-gradient(135deg, #f6f3ff, #eef9f6); }
+.test-mode-banner > span { flex: none; display: flex; align-items: center; gap: 7px; color: var(--violet); font-size: 9px; font-weight: 850; letter-spacing: .1em; }
+.test-mode-banner i { width: 7px; height: 7px; border-radius: 50%; background: #33b89f; box-shadow: 0 0 0 5px rgba(51,184,159,.1); }
+.test-mode-banner p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
 .choice-group { display: grid; gap: 10px; margin: 26px 0; padding: 0; border: 0; }
 .choice-group legend { max-width: 700px; margin-bottom: 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
@@ -570,6 +574,7 @@ input::placeholder, textarea::placeholder { color: #a1a1a6; opacity: 1; }
 .completion-mark { width: 64px; height: 64px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #0b7c70, #55b9a8); box-shadow: 0 14px 30px rgba(13,119,110,.2); font-size: 28px; font-weight: 800; }
 .completion h3 { margin: 0 0 10px; font-size: 28px; letter-spacing: -.04em; }
 .completion p { max-width: 560px; margin: 0 auto; color: var(--muted); line-height: 1.6; }
+.database-save-status { display: block; margin-top: 13px; color: var(--teal); font-size: 11px; font-weight: 700; }
 
 .site-footer {
   width: min(1120px, calc(100% - 40px));
@@ -743,6 +748,7 @@ input::placeholder, textarea::placeholder { color: #a1a1a6; opacity: 1; }
   .date-range i { display: none; }
   .date-range input { font-size: 14px; }
   .auto-example-note { align-items: flex-start; }
+  .test-mode-banner { align-items: flex-start; flex-direction: column; gap: 8px; }
   .event-preview-toggle { padding-right: 46px; }
   .vision-stage { grid-column: auto; grid-template-columns: 1fr; }
   .vision-frame { height: 260px; min-height: 260px; }

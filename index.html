@@ -6,7 +6,7 @@
   <meta name="description" content="멀리 있어도 안심이 이어지는 CatGuard Relay 웹 MVP" />
   <meta name="theme-color" content="#f5f5f7" />
   <title>CatGuard Relay — 안심을 연결하다</title>
-  <link rel="stylesheet" href="./style.css?v=20260830-4" />
+  <link rel="stylesheet" href="./style.css?v=20260830-5" />
 </head>
 <body>
   <a class="skip-link" href="#main-content">본문으로 바로가기</a>
@@ -123,6 +123,7 @@
           <p class="eyebrow">Step 2 · Manual MVP Input</p>
           <h2>MVP에서만 사진을<br />직접 제출합니다.</h2>
           <p>정식 서비스는 영상에서 자동 감지합니다. 이번 체험에서는 Gemini 3.1 Flash-Lite가 설명과 홈캠 사진 1장을 함께 살펴봅니다.</p>
+          <div class="test-mode-banner"><span><i></i> TEST MODE ON</span><p>현재 검증에서는 Gemini API를 호출하지 않습니다. 고정 분석 결과로 Google Sheets 저장 파이프라인만 테스트합니다.</p></div>
         </div>
 
         <form id="case-form" novalidate>
@@ -210,7 +211,8 @@
             <p>
               입력하신 부재 상황, 홈캠 관찰 내용 및 선택적으로 첨부한 이미지는 이번 MVP의
               ‘원격 확인 후 현장 확인 연결 흐름’ 검증과 AI 검토 결과 생성에 사용됩니다.
-              AI가 연결된 경우 정제된 입력은 Cloudflare를 거쳐 Google Gemini로 전송되며 이 서비스에서는 저장하지 않습니다.
+              테스트 모드에서는 Gemini를 호출하지 않습니다. 실제 AI가 연결된 경우에만 정제된 입력이 Cloudflare를 거쳐 Google Gemini로 전송됩니다.
+              사진 원본과 자유 입력 원문은 저장하지 않고, 익명 분석 요약과 선택형 피드백만 Google Sheets에 기록합니다.
               연락처나 이름은 수집하지 않으며, 민감하거나 불필요한 개인정보가 포함된 이미지는 업로드하지 마세요.
             </p>
             <label class="check-row">
@@ -435,9 +437,10 @@
           <div class="completion-mark">✓</div>
           <h3>테스트가 완료되었습니다.</h3>
           <p>
-            이 정적 MVP는 피드백을 외부 서버나 Google Sheets로 저장하지 않습니다.
-            가격·결제 기능도 제공하지 않습니다.
+            익명화된 분석 결과와 선택형 피드백만 Google Sheets 데이터베이스로 전송합니다.
+            사진 원본·이름·연락처·주소·IP는 저장하지 않습니다.
           </p>
+          <small id="database-save-status" class="database-save-status"></small>
         </div>
       </div>
     </section>
@@ -448,7 +451,7 @@
     <p>© 2026 CatGuard Relay · Web MVP</p>
   </footer>
 
-  <script src="./config.js?v=20260830-4"></script>
-  <script src="./script.js?v=20260830-4"></script>
+  <script src="./config.js?v=20260830-5"></script>
+  <script src="./script.js?v=20260830-5"></script>
 </body>
 </html>

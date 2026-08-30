@@ -12,6 +12,8 @@
 - Date input: Apple Calendar 스타일의 시작일–종료일 부재 일정 선택
 - Event preview: 체크형 이벤트 감지 분석 시나리오
 - Zero-input demo: 2단계 입력을 비우고 제출하면 기본 사진과 예시 상황을 자동 적용
+- Test mode: `config.js`의 `testMode: true`에서 Gemini API를 호출하지 않고 고정 분석 응답 사용
+- Database: Google Sheets의 `event_log`, `feedback`, `dashboard`, `codebook` 4개 탭
 
 ## 로컬 실행
 
@@ -60,7 +62,23 @@ window.CATGUARD_CONFIG = {
 - Gemini API로 보내는 데이터에는 연결된 Google 서비스 약관과 데이터 정책이 적용됩니다. 과제 시연에는 비식별 샘플 이미지를 권장합니다.
 - AI 결과는 질병·응급도·통증·감정·안전 상태를 진단하거나 보증하지 않습니다.
 - 이미지가 없거나 AI 연결이 실패하면 사용자가 입력한 사실만 정리하는 로컬 모드로 자동 전환됩니다.
-- 카카오톡과 가족·지인 메시지는 실제로 전송되지 않으며 피드백도 외부에 저장되지 않습니다.
+- 카카오톡과 가족·지인 메시지는 실제로 전송되지 않습니다. 익명화된 분석 결과와 선택형 피드백만 Google Sheets 저장 대상으로 사용합니다.
+
+## Google Sheets DB 연결
+
+1. `google-apps-script/Code.gs`를 Apps Script 프로젝트에 붙여 넣습니다.
+2. 스크립트 속성에 `SPREADSHEET_ID`와 임의의 긴 `WEBHOOK_TOKEN`을 저장합니다.
+3. 웹 앱을 `나로 실행`, 접근 권한 `모든 사용자`로 배포합니다.
+4. Cloudflare Worker에 웹 앱 URL과 동일 토큰을 Secret으로 저장합니다.
+
+```bash
+cd worker
+npx wrangler secret put SHEETS_WEBHOOK_URL
+npx wrangler secret put SHEETS_WEBHOOK_TOKEN
+npx wrangler deploy
+```
+
+`SHEETS_WEBHOOK_URL`이 없는 테스트 환경에서도 `/collect`는 개인정보가 제거된 저장 페이로드를 검증하고 `validated_only`로 응답합니다. 실제 시트에는 사진 원본, 이름, 연락처, 주소, IP, 자유 입력 원문을 저장하지 않습니다.
 
 ## 파일 구조
 
@@ -73,4 +91,5 @@ assets/default/      사진이 없는 사용자를 위한 224px급 예시 이미
 worker/
   wrangler.toml       Worker 배포 설정
   src/index.js        Gemini 프록시, CORS, 입력/응답 검증
+google-apps-script/   Google Sheets 행 추가용 Apps Script
 ```

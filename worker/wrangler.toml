@@ -10,3 +10,6 @@ ALLOWED_ORIGINS = "https://creed3466.github.io"
 
 # GEMINI_API_KEY는 파일에 적지 말고 다음 명령으로 Secret에 저장합니다.
 # npx wrangler secret put GEMINI_API_KEY
+# Google Apps Script 웹 앱 배포 후 아래 두 값도 Secret으로 저장합니다.
+# npx wrangler secret put SHEETS_WEBHOOK_URL
+# npx wrangler secret put SHEETS_WEBHOOK_TOKEN
