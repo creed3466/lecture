@@ -238,6 +238,14 @@ function buildLocalRelayMessage(caseData, target) {
   return `[CatGuard Relay 현장 확인 요청]\n\n${target}에게 부탁드립니다.\n\n제가 지금 ${caseData.absenceType}으로 집을 비운 상태입니다.\n- 집을 비운 시간: ${caseData.absenceDuration}\n- 마지막 원격 확인: ${caseData.lastCheckTime}\n- 홈캠에서 확인한 내용: ${normalizeSentence(caseData.observedFacts)}\n- 추가 확인이 필요하다고 느낀 이유: ${normalizeSentence(caseData.concernReason)}${alertLine}${aiLine}${checklist}\n\n가능하시면 집에 가서 현재 상황을 한 번 확인해 주세요.\nAI 관찰은 질병·응급 여부를 판단한 것이 아니라, 직접 확인할 항목을 정리한 참고 정보입니다.`;
 }
 
+function buildOwnerAlert(caseData) {
+  const summary = state.aiReview?.scene_summary || "평소와 다른 장면을 확인했습니다.";
+  return {
+    title: "확인이 필요한 장면이 감지되었어요",
+    preview: `${summary} · ${caseData.lastCheckTime.replace("T", " ")}`
+  };
+}
+
 // Screen A
 const recentExperienceInputs = [...document.querySelectorAll('input[name="recentExperience"]')];
 const startButton = document.getElementById("start-button");
@@ -471,16 +479,10 @@ relayTargetInputs.forEach((input) => {
 
 relayNextButton.addEventListener("click", async () => {
   if (!state.relayTarget) return;
-
-  if (state.relayTarget === "지금은 요청하지 않음") {
-    state.sendIntent = "없다";
-    unlockStep(5);
-    showScreen("screen-feedback");
-    return;
-  }
-
-  document.getElementById("relay-target-label").textContent =
-    `${state.relayTarget}에게 보낼 수 있는 현장 확인 요청 내용을 정리합니다.`;
+  const noRelay = state.relayTarget === "지금은 요청하지 않음";
+  document.getElementById("relay-target-label").textContent = noRelay
+    ? "보호자 본인에게 전달되는 자동 감지 알림을 재현합니다."
+    : `보호자 본인에게 먼저 알린 뒤, ${state.relayTarget}에게 보낼 추가 확인 요청을 정리합니다.`;
   unlockStep(4);
   showScreen("screen-relay");
   await runRelayMessage();
@@ -497,7 +499,20 @@ async function runRelayMessage() {
 
   try {
     await wait(350);
-    state.relayMessage = buildLocalRelayMessage(state.caseData, state.relayTarget);
+    const noRelay = state.relayTarget === "지금은 요청하지 않음";
+    const ownerAlert = buildOwnerAlert(state.caseData);
+    document.getElementById("owner-alert-title").textContent = ownerAlert.title;
+    document.getElementById("owner-alert-preview").textContent = ownerAlert.preview;
+    const kakaoNotification = document.getElementById("kakao-notification");
+    kakaoNotification.classList.remove("is-arriving");
+    void kakaoNotification.offsetWidth;
+    kakaoNotification.classList.add("is-arriving");
+
+    const optionalRelayWrap = document.getElementById("optional-relay-wrap");
+    const relayCopyActions = document.getElementById("relay-copy-actions");
+    setHidden(optionalRelayWrap, noRelay);
+    setHidden(relayCopyActions, noRelay);
+    state.relayMessage = noRelay ? "" : buildLocalRelayMessage(state.caseData, state.relayTarget);
     document.getElementById("relay-message").textContent = state.relayMessage;
     setHidden(contentWrap, false);
   } catch (error) {
