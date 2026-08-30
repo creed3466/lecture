@@ -376,7 +376,7 @@ function updateAbsenceRange() {
 absenceStartDate.addEventListener("change", updateAbsenceRange);
 absenceEndDate.addEventListener("change", updateAbsenceRange);
 
-async function fillExampleData({ onlyMissing = false, focus = false, enablePreview = false } = {}) {
+async function fillExampleData({ onlyMissing = false, focus = false, enablePreview = false, useNeutralImageText = false } = {}) {
   setHidden(formError, true);
   useExampleButton.disabled = true;
   useExampleButton.textContent = "불러오는 중…";
@@ -390,9 +390,15 @@ async function fillExampleData({ onlyMissing = false, focus = false, enablePrevi
     if (!onlyMissing || !absenceStartDate.value) absenceStartDate.value = localDateDaysFromNow(0);
     if (!onlyMissing || !absenceEndDate.value) absenceEndDate.value = localDateDaysFromNow(2);
     updateAbsenceRange();
-    setValue("observed-facts", "오후 거실 홈캠 캡처에서 고양이 두 마리가 확인됩니다. 회색 줄무늬 고양이는 소파 왼쪽 좌석에 몸을 낮추고 앞을 바라보고 있으며, 흰 고양이는 소파 앞 바닥에 배를 댄 자세로 누워 있습니다. 두 고양이 모두 눈을 뜨고 있고 이미지 안에서 큰 물건이 쓰러지거나 주변이 어질러진 모습은 보이지 않습니다. 다만 물그릇, 사료그릇과 화장실은 카메라 촬영 범위에 포함되지 않아 현재 상태를 확인할 수 없습니다.");
-    setValue("concern-reason", "평소 활동 시간인데 두 고양이가 약 두 시간 동안 거실 주변의 비슷한 위치에 머무는 이벤트가 감지되었습니다. 사진 한 장만으로 실제 움직임, 식사, 음수, 배변 여부를 알 수 없어 추가 확인이 필요합니다.");
-    setValue("device-alert", "이벤트 감지 Preview · 장시간 움직임 없음 패턴이 감지됨");
+    setValue("observed-facts", useNeutralImageText
+      ? "직접 선택한 홈캠 캡처 1장을 기준으로 반려동물의 위치와 주변 환경을 확인합니다. 사진에 보이지 않는 움직임, 식사, 음수와 배변 여부는 알 수 없습니다."
+      : "오후 거실 홈캠 캡처에서 고양이 두 마리가 확인됩니다. 회색 줄무늬 고양이는 소파 왼쪽 좌석에 몸을 낮추고 앞을 바라보고 있으며, 흰 고양이는 소파 앞 바닥에 배를 댄 자세로 누워 있습니다. 두 고양이 모두 눈을 뜨고 있고 이미지 안에서 큰 물건이 쓰러지거나 주변이 어질러진 모습은 보이지 않습니다. 다만 물그릇, 사료그릇과 화장실은 카메라 촬영 범위에 포함되지 않아 현재 상태를 확인할 수 없습니다.");
+    setValue("concern-reason", useNeutralImageText
+      ? "집을 비운 동안 직접 선택한 사진에 보이는 반려동물의 상태와 생활 환경 변화를 확인하고 싶습니다."
+      : "평소 활동 시간인데 두 고양이가 약 두 시간 동안 거실 주변의 비슷한 위치에 머무는 이벤트가 감지되었습니다. 사진 한 장만으로 실제 움직임, 식사, 음수, 배변 여부를 알 수 없어 추가 확인이 필요합니다.");
+    setValue("device-alert", useNeutralImageText
+      ? "직접 업로드한 홈캠 이미지 분석 요청"
+      : "이벤트 감지 Preview · 장시간 움직임 없음 패턴이 감지됨");
     if (enablePreview) eventDetectionPreview.checked = true;
 
     if (!state.processedImage && !state.imageProcessing) {
@@ -444,9 +450,10 @@ caseForm.addEventListener("submit", async (event) => {
     document.getElementById("concern-reason").value,
     document.getElementById("device-alert").value
   ].every((value) => !String(value).trim()) && !state.processedImage && !state.imageProcessing;
+  const hasDirectImage = Boolean(cameraImageInput.files[0]) || Boolean(state.processedImage && !state.processedImage.isExample);
 
   try {
-    await fillExampleData({ onlyMissing: true, enablePreview: isBlankCase });
+    await fillExampleData({ onlyMissing: true, enablePreview: isBlankCase, useNeutralImageText: hasDirectImage });
   } catch {
     return;
   }
