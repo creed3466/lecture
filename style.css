@@ -563,20 +563,86 @@ input::placeholder, textarea::placeholder { color: #a1a1a6; opacity: 1; }
   .flow-tab { min-width: 46px; width: 46px; padding: 0; }
   .flow-tab span { margin: 0; }
   .flow-tab em { display: none; }
-  .hero { min-height: auto; padding: 46px 20px 48px; }
+  .hero {
+    min-height: auto;
+    padding: 46px 20px 62px;
+    background-size: 160% 160%;
+    animation: mobileHeroMesh 9s ease-in-out infinite alternate;
+  }
+  @keyframes mobileHeroMesh {
+    0% { background-position: 20% 20%; }
+    100% { background-position: 86% 65%; }
+  }
   .hero h1 { font-size: clamp(43px, 13vw, 58px); }
   .hero__lead br { display: none; }
   .hero__actions { align-items: flex-start; flex-direction: column; gap: 18px; }
   .trust-row { gap: 14px; }
-  .hero-art, .flow-story, .principles { display: none; }
-  .hero__actions .text-link { display: none; }
-  .global-menu button[data-landing-anchor="flow-overview"], .global-menu button[data-landing-anchor="principles"] { display: none; }
+  .hero-art {
+    display: grid;
+    height: 326px;
+    margin: -8px -10px -30px;
+    perspective: 900px;
+  }
+  .hero-art::before {
+    content: "";
+    position: absolute;
+    inset: 22px 8% 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(76,215,191,.24), rgba(113,87,232,.11) 42%, transparent 70%);
+    filter: blur(8px);
+    animation: mobileAura 4.5s ease-in-out infinite;
+  }
+  @keyframes mobileAura { 50% { transform: scale(1.14); opacity: .72; } }
+  .hero-art .aura--one { width: 300px; height: 300px; }
+  .hero-art .aura--two { width: 210px; height: 210px; right: 8%; bottom: 0; }
+  .hero-art .device {
+    animation: mobileDeviceFloat 5s cubic-bezier(.4,0,.2,1) infinite;
+    transform-origin: center;
+  }
+  @keyframes mobileDeviceFloat {
+    0%, 100% { transform: scale(.51) rotate(2deg) translateY(0); }
+    50% { transform: scale(.53) rotate(-1.5deg) translateY(-15px); }
+  }
+  .hero-art .device::after {
+    content: "";
+    position: absolute;
+    z-index: 5;
+    inset: -40% -80%;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.16) 49%, transparent 56%);
+    animation: mobileSheen 4.8s ease-in-out infinite;
+  }
+  @keyframes mobileSheen { 0%, 20% { transform: translateX(-35%); } 75%, 100% { transform: translateX(38%); } }
+  .hero-art .status-orbit__ring { animation: mobileOrbitPulse 2.8s ease-in-out infinite; }
+  @keyframes mobileOrbitPulse { 50% { transform: scale(1.07); opacity: .62; } }
+  .floating-card { min-width: 150px; padding: 11px 12px; }
+  .floating-card--top { top: 20%; left: -2%; transform: scale(.76); animation: mobileCardLeft 4.6s ease-in-out infinite; }
+  .floating-card--bottom { right: -3%; bottom: 15%; transform: scale(.76); animation: mobileCardRight 5.2s ease-in-out infinite; }
+  @keyframes mobileCardLeft { 50% { transform: scale(.78) translateY(-12px) rotate(-2deg); } }
+  @keyframes mobileCardRight { 50% { transform: scale(.78) translateY(10px) rotate(2deg); } }
+  .principles { display: none; }
+  .global-menu button[data-landing-anchor="principles"] { display: none; }
   .flow-story, .principles, .experience-panel { width: calc(100% - 28px); }
-  .flow-story { padding: 90px 0 72px; }
+  .flow-story { display: block; padding: 58px 0 50px; }
   .story-heading { align-items: flex-start; flex-direction: column; }
-  .story-heading h2, .principles > h2, .experience-panel__intro h2 { font-size: 42px; }
-  .story-grid { grid-template-columns: 1fr; }
-  .story-card, .story-card:last-child { grid-column: auto; min-height: 450px; }
+  .story-heading { margin-bottom: 24px; }
+  .story-heading h2, .principles > h2 { font-size: 36px; }
+  .story-grid {
+    width: calc(100vw - 14px);
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 0 18px 16px 0;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .story-grid::-webkit-scrollbar { display: none; }
+  .story-card, .story-card:last-child { grid-column: auto; min-width: min(78vw, 310px); min-height: 340px; padding: 23px; scroll-snap-align: start; }
+  .story-card__visual { min-height: 170px; }
+  .story-card h3 { font-size: 21px; }
+  .radar i { width: 132px; height: 132px; }
+  .radar i:nth-child(2) { width: 90px; height: 90px; }
+  .radar i:nth-child(3) { width: 48px; height: 48px; }
   .principles { padding: 58px 26px; }
   .principle-list { margin-top: 50px; }
   .principle-list article { grid-template-columns: 42px 1fr; }
