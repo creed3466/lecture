@@ -162,11 +162,21 @@
           <div class="field">
             <span>홈캠 캡처 <em>선택 · 1장</em></span>
             <input id="camera-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+            <div class="example-loader">
+              <img src="./assets/default/cat-scene-224.jpg" alt="거실의 소파와 바닥에 고양이 두 마리가 있는 예시 홈캠 장면" />
+              <div>
+                <span>사진이 없어도 체험할 수 있어요</span>
+                <strong>두 고양이의 거실 홈캠 예시</strong>
+                <p>예시 사진과 상세한 상황 설명을 입력 항목에 한 번에 불러옵니다.</p>
+              </div>
+              <button class="button button--secondary" id="use-example" type="button">예시 불러오기</button>
+            </div>
             <div id="image-preview-wrap" class="image-preview hidden">
               <img id="image-preview" alt="선택한 홈캠 캡처 미리보기" />
               <div><strong>AI 시각 분석 준비 완료</strong><small id="image-meta"></small><button id="remove-image" type="button">이미지 제거</button></div>
             </div>
-            <small class="field-help">전송 전 최대 1280px로 축소하고 위치정보를 제거합니다. 얼굴·주소 등 개인정보가 담긴 사진은 사용하지 마세요.</small>
+            <small class="field-help">직접 올린 사진은 전송 전 최대 1280px로 축소하고 위치정보를 제거합니다. 얼굴·주소 등 개인정보가 담긴 사진은 사용하지 마세요.</small>
+            <p class="mvp-scope"><span>Product vision</span> 정식 서비스는 시간대와 각도가 다른 여러 장을 함께 분석합니다. <strong>현재 MVP는 비용과 검증 범위를 고려해 Gemini에 한 번에 1장만 연동합니다.</strong></p>
           </div>
 
           <div class="consent-box">
@@ -215,7 +225,7 @@
             <div class="vision-frame" id="vision-frame">
               <img id="analysis-image" alt="AI 분석에 사용된 홈캠 캡처" />
               <div class="scan-line" aria-hidden="true"></div>
-              <span class="vision-badge">VISION INPUT</span>
+              <span class="vision-badge">VISION INPUT · 1 / 1 MVP</span>
             </div>
             <div class="vision-copy">
               <div class="analysis-mode"><span class="analysis-dot"></span><strong id="analysis-mode-label">Gemini 멀티모달 분석</strong></div>

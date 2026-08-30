@@ -268,6 +268,7 @@ const imagePreviewWrap = document.getElementById("image-preview-wrap");
 const imagePreview = document.getElementById("image-preview");
 const imageMeta = document.getElementById("image-meta");
 const removeImageButton = document.getElementById("remove-image");
+const useExampleButton = document.getElementById("use-example");
 
 function updateAiSubmitState() {
   aiSubmitButton.disabled = !consent.checked;
@@ -280,6 +281,13 @@ function clearPreparedImage() {
   cameraImageInput.value = "";
   imagePreview.removeAttribute("src");
   setHidden(imagePreviewWrap, true);
+}
+
+function showPreparedImage(prepared, label = "위치정보 제거") {
+  state.processedImage = prepared;
+  imagePreview.src = prepared.previewUrl;
+  imageMeta.textContent = `${label} · ${prepared.width} × ${prepared.height} · ${Math.max(1, Math.round(prepared.bytes / 1024))}KB`;
+  setHidden(imagePreviewWrap, false);
 }
 
 cameraImageInput.addEventListener("change", () => {
@@ -297,10 +305,7 @@ cameraImageInput.addEventListener("change", () => {
   }
   state.imageProcessing = prepareImage(file)
     .then((prepared) => {
-      state.processedImage = prepared;
-      imagePreview.src = prepared.previewUrl;
-      imageMeta.textContent = `${prepared.width} × ${prepared.height} · 위치정보 제거 · ${Math.max(1, Math.round(prepared.bytes / 1024))}KB`;
-      setHidden(imagePreviewWrap, false);
+      showPreparedImage(prepared);
       return prepared;
     })
     .catch((error) => {
@@ -312,6 +317,47 @@ cameraImageInput.addEventListener("change", () => {
 });
 
 removeImageButton.addEventListener("click", clearPreparedImage);
+
+function localDateTimeHoursAgo(hours) {
+  const date = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+useExampleButton.addEventListener("click", async () => {
+  setHidden(formError, true);
+  useExampleButton.disabled = true;
+  useExampleButton.textContent = "불러오는 중…";
+  try {
+    cameraImageInput.value = "";
+    document.getElementById("absence-type").value = "출근";
+    document.getElementById("absence-duration").value = "약 9시간 30분 (오전 8시 30분부터 오후 6시까지 예정)";
+    document.getElementById("last-check-time").value = localDateTimeHoursAgo(2);
+    document.getElementById("available-contact").value = "가족";
+    document.getElementById("observed-facts").value =
+      "오후 거실 홈캠 캡처에서 고양이 두 마리가 확인됩니다. 회색 줄무늬 고양이는 소파 왼쪽 좌석에 몸을 낮추고 앞을 바라보고 있으며, 흰 고양이는 소파 앞 바닥에 배를 댄 자세로 누워 있습니다. 두 고양이 모두 눈을 뜨고 있고 이미지 안에서 큰 물건이 쓰러지거나 주변이 어질러진 모습은 보이지 않습니다. 다만 물그릇, 사료그릇과 화장실은 카메라 촬영 범위에 포함되지 않아 현재 상태를 확인할 수 없습니다.";
+    document.getElementById("concern-reason").value =
+      "평소에는 오후에 두 고양이가 각자 다른 방으로 이동하거나 창가를 오가는 모습이 자주 보이는데, 오늘은 약 두 시간 동안 거실 주변에서 비슷한 자세로 머무는 것처럼 보여 추가 확인이 필요하다고 느꼈습니다. 사진 한 장만으로 실제 움직임, 식사, 음수, 배변 여부를 알 수 없으므로 가족이 현장에서 확인할 항목을 정리하고 싶습니다.";
+    document.getElementById("device-alert").value =
+      "오후 3시 42분 거실 카메라 움직임 감지 알림 이후 추가 움직임 알림이 기록되지 않음";
+
+    const response = await fetch("./assets/default/cat-scene-224.jpg", { cache: "force-cache" });
+    if (!response.ok) throw new Error("예시 이미지를 불러오지 못했습니다.");
+    const blob = await response.blob();
+    const file = new File([blob], "cat-scene-224.jpg", { type: "image/jpeg" });
+    state.imageProcessing = prepareImage(file);
+    const prepared = await state.imageProcessing;
+    prepared.isExample = true;
+    showPreparedImage(prepared, "기본 예시 이미지");
+    document.getElementById("observed-facts").focus();
+  } catch (error) {
+    formError.textContent = error.message || "예시 데이터를 불러오지 못했습니다.";
+    setHidden(formError, false);
+  } finally {
+    useExampleButton.disabled = false;
+    useExampleButton.textContent = "예시 다시 불러오기";
+  }
+});
 
 caseForm.addEventListener("submit", async (event) => {
   event.preventDefault();

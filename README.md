@@ -7,6 +7,7 @@
 - AI proxy: Cloudflare Worker
 - Model: Gemini 2.5 Flash-Lite
 - Fallback: Worker 미설정/장애 시 로컬 안전 분석
+- Built-in demo: 사진이 없는 사용자를 위한 224×298 예시 이미지와 상세 상황 입력
 
 ## 로컬 실행
 
@@ -50,6 +51,7 @@ window.CATGUARD_CONFIG = {
 ## 데이터 처리와 제한
 
 - 사진은 브라우저에서 최대 1280px JPEG로 다시 인코딩해 EXIF 위치정보를 제거합니다.
+- 제품 방향은 시간·각도가 다른 여러 사진의 종합 분석이지만, 현재 MVP의 Gemini 입력은 한 번에 한 장으로 제한합니다.
 - Worker와 브라우저는 입력·이미지를 저장하지 않으며 응답에 `no-store`를 적용합니다.
 - 무료 Gemini API에 보낸 데이터는 Google의 무료 서비스 데이터 정책이 적용될 수 있습니다. 과제 시연에는 비식별 샘플 이미지를 권장합니다.
 - AI 결과는 질병·응급도·통증·감정·안전 상태를 진단하거나 보증하지 않습니다.
@@ -63,6 +65,7 @@ index.html           화면과 5단계 플로우
 style.css            Apple-inspired UI와 VLM 분석 화면
 script.js            이미지 정제, API 호출, 로컬 fallback
 config.js            공개 가능한 Worker endpoint 설정
+assets/default/      사진이 없는 사용자를 위한 224px급 예시 이미지
 worker/
   wrangler.toml       Worker 배포 설정
   src/index.js        Gemini 프록시, CORS, 입력/응답 검증
