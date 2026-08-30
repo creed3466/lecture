@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CatGuard Relay 웹 MVP" />
+  <title>CatGuard Relay MVP</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <p class="eyebrow">Web MVP</p>
+        <h1>CatGuard Relay</h1>
+      </div>
+    </header>
+
+    <div class="progress" aria-label="진행 단계">
+      <span class="progress__step is-active" data-progress="1">1</span>
+      <span class="progress__line"></span>
+      <span class="progress__step" data-progress="2">2</span>
+      <span class="progress__line"></span>
+      <span class="progress__step" data-progress="3">3</span>
+      <span class="progress__line"></span>
+      <span class="progress__step" data-progress="4">4</span>
+      <span class="progress__line"></span>
+      <span class="progress__step" data-progress="5">5</span>
+    </div>
+
+    <!-- Screen A: Landing / target experience check -->
+    <section class="screen is-active" id="screen-landing" data-step="1">
+      <div class="card hero-card">
+        <p class="eyebrow">최근 실제 경험으로 테스트합니다</p>
+        <h2>원격으로 확인한 뒤에도<br />누군가 직접 가봐야 할 때가 있나요?</h2>
+        <p class="lead">
+          CatGuard Relay는 집을 오래 비운 동안 반려묘의 원격 확인과 실제 현장 확인 사이의 공백을 줄이는 흐름을 검증하는 MVP입니다.
+        </p>
+
+        <fieldset class="choice-group">
+          <legend>최근 1개월 내 장시간 외출·여행·출장 중 반려묘를 집에 두고 홈캠·CCTV로 확인한 경험이 있나요?</legend>
+          <label class="choice-card">
+            <input type="radio" name="recentExperience" value="yes" />
+            <span>
+              <strong>경험 있음</strong>
+              <small>최근 실제 사례 1건으로 테스트합니다.</small>
+            </span>
+          </label>
+          <label class="choice-card">
+            <input type="radio" name="recentExperience" value="no" />
+            <span>
+              <strong>경험 없음</strong>
+              <small>이번 핵심 가설 검증 표본에서는 제외됩니다.</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <div id="not-target-note" class="notice notice--muted hidden" role="status">
+          이번 테스트는 최근 원격 확인 경험이 있는 보호자를 대상으로 합니다.
+        </div>
+
+        <button class="button button--primary" id="start-button" disabled>시작하기</button>
+      </div>
+    </section>
+
+    <!-- Screen B: Situation / observation input -->
+    <section class="screen" id="screen-input" data-step="2">
+      <div class="card">
+        <div class="section-heading">
+          <p class="eyebrow">Step 2</p>
+          <h2>최근 실제 사례 1건을 입력해주세요</h2>
+          <p>로컬 데모 처리기는 입력한 사실만 정리하며, 반려묘의 질병·응급·안전 상태를 진단하지 않습니다.</p>
+        </div>
+
+        <form id="case-form" novalidate>
+          <div class="form-grid">
+            <label class="field">
+              <span>부재 유형 <b>*</b></span>
+              <select id="absence-type" required>
+                <option value="">선택</option>
+                <option value="출근">출근</option>
+                <option value="여행·출장">여행·출장</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>집을 비운 시간 <b>*</b></span>
+              <input id="absence-duration" type="text" placeholder="예: 9시간, 1박 2일" required />
+            </label>
+
+            <label class="field">
+              <span>마지막 원격 확인 시각 <b>*</b></span>
+              <input id="last-check-time" type="datetime-local" required />
+            </label>
+
+            <label class="field">
+              <span>현장 확인 가능 대상 <b>*</b></span>
+              <select id="available-contact" required>
+                <option value="">선택</option>
+                <option value="가족">가족</option>
+                <option value="지인">지인</option>
+                <option value="펫시터">펫시터</option>
+                <option value="없음">없음</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>홈캠에서 직접 확인한 사실 <b>*</b></span>
+            <textarea id="observed-facts" rows="5" placeholder="예: 오후 3시 이후 거실 카메라에서 보이지 않았고, 마지막 확인 때 물그릇 근처에 있었습니다." required></textarea>
+          </label>
+
+          <label class="field">
+            <span>추가 확인이 필요하다고 느낀 이유 <b>*</b></span>
+            <textarea id="concern-reason" rows="4" placeholder="평소와 달라 보였거나 직접 확인이 필요하다고 느낀 이유를 적어주세요." required></textarea>
+          </label>
+
+          <label class="field">
+            <span>기기 알림 문구 <em>선택</em></span>
+            <textarea id="device-alert" rows="2" placeholder="예: 움직임 감지 알림, 연결 끊김 알림 등"></textarea>
+          </label>
+
+          <label class="field">
+            <span>홈캠 캡처 <em>선택 · 1장</em></span>
+            <input id="camera-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+            <small class="field-help">민감하거나 불필요한 개인정보가 포함된 이미지는 업로드하지 마세요.</small>
+          </label>
+
+          <div class="consent-box">
+            <p>
+              입력하신 부재 상황, 홈캠 관찰 내용 및 선택적으로 첨부한 이미지는 이번 MVP의
+              ‘원격 확인 후 현장 확인 연결 흐름’ 검증과 AI 검토 결과 생성에 사용됩니다.
+              연락처나 이름은 수집하지 않으며, 민감하거나 불필요한 개인정보가 포함된 이미지는 업로드하지 마세요.
+            </p>
+            <label class="check-row">
+              <input id="privacy-consent" type="checkbox" required />
+              <span>위 목적의 입력정보 및 선택적 이미지 처리에 동의합니다.</span>
+            </label>
+          </div>
+
+          <div id="form-error" class="notice notice--error hidden" role="alert"></div>
+
+          <div class="actions">
+            <button type="button" class="button button--ghost" data-back="screen-landing">이전</button>
+            <button type="submit" class="button button--primary" id="ai-submit-button" disabled>AI로 정리하기</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen C: AI processing / review result -->
+    <section class="screen" id="screen-result" data-step="3">
+      <div class="card">
+        <div class="section-heading">
+          <p class="eyebrow">Step 3</p>
+          <h2>현장확인 검토 결과</h2>
+          <p>사용자가 입력한 사실과 확인되지 않은 부분을 구분해 보여줍니다.</p>
+        </div>
+
+        <div class="input-summary" id="input-summary"></div>
+
+        <div id="ai-loading" class="loading-block hidden" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>입력 내용을 사실과 불확실 정보로 정리하고 있습니다.</p>
+        </div>
+
+        <div id="ai-error" class="notice notice--error hidden" role="alert"></div>
+
+        <div id="ai-result" class="result-grid hidden">
+          <article class="result-card">
+            <h3>관찰된 사실</h3>
+            <ul id="facts-list"></ul>
+          </article>
+
+          <article class="result-card">
+            <h3>확인되지 않은 부분</h3>
+            <ul id="unknown-list"></ul>
+          </article>
+
+          <article class="result-card">
+            <h3>현장 확인을 고려할 수 있는 이유</h3>
+            <ul id="consider-list"></ul>
+          </article>
+
+          <article class="result-card">
+            <h3>연결 가능한 사람</h3>
+            <p id="available-person"></p>
+          </article>
+
+          <div class="notice notice--warning result-limit">
+            이 로컬 데모는 반려묘의 질병, 응급도, 안전 상태를 진단하거나 보증하지 않습니다.
+            입력 정보가 부족한 경우 확인 불가로 표시하며, 최종 현장 확인 여부는 보호자가 결정합니다.
+          </div>
+
+          <fieldset class="choice-group relay-choice">
+            <legend>이 결과를 본 뒤 어떻게 하시겠어요?</legend>
+            <label class="choice-card compact">
+              <input type="radio" name="relayTarget" value="가족" />
+              <span><strong>가족에게 확인 요청</strong></span>
+            </label>
+            <label class="choice-card compact">
+              <input type="radio" name="relayTarget" value="지인" />
+              <span><strong>지인에게 확인 요청</strong></span>
+            </label>
+            <label class="choice-card compact">
+              <input type="radio" name="relayTarget" value="펫시터" />
+              <span><strong>펫시터에게 확인 요청</strong></span>
+            </label>
+            <label class="choice-card compact">
+              <input type="radio" name="relayTarget" value="지금은 요청하지 않음" />
+              <span><strong>지금은 요청하지 않음</strong></span>
+            </label>
+          </fieldset>
+
+          <div class="actions">
+            <button type="button" class="button button--ghost" data-back="screen-input">입력 수정</button>
+            <button type="button" class="button button--primary" id="relay-next-button" disabled>다음</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen D: Relay request message -->
+    <section class="screen" id="screen-relay" data-step="4">
+      <div class="card">
+        <div class="section-heading">
+          <p class="eyebrow">Step 4</p>
+          <h2>현장 확인 요청 내용</h2>
+          <p id="relay-target-label"></p>
+        </div>
+
+        <div id="relay-loading" class="loading-block hidden" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>입력한 사실을 바탕으로 확인 요청 내용을 정리하고 있습니다.</p>
+        </div>
+
+        <div id="relay-error" class="notice notice--error hidden" role="alert"></div>
+
+        <div id="relay-content-wrap" class="hidden">
+          <article class="message-card">
+            <pre id="relay-message"></pre>
+          </article>
+
+          <div class="inline-actions">
+            <button type="button" class="button button--secondary" id="copy-message-button">복사</button>
+            <span id="copy-status" class="copy-status" aria-live="polite"></span>
+          </div>
+
+          <div class="notice notice--muted">
+            이 MVP에서는 메시지를 자동으로 전송하지 않습니다. ‘복사’를 누르면 요청 문구만 복사됩니다.
+          </div>
+
+          <fieldset class="choice-group">
+            <legend>이 요청 내용을 실제로 보낼 의향이 있나요?</legend>
+            <label class="choice-card compact">
+              <input type="radio" name="sendIntent" value="있다" />
+              <span><strong>있다</strong></span>
+            </label>
+            <label class="choice-card compact">
+              <input type="radio" name="sendIntent" value="없다" />
+              <span><strong>없다</strong></span>
+            </label>
+          </fieldset>
+
+          <div class="actions">
+            <button type="button" class="button button--ghost" data-back="screen-result">이전</button>
+            <button type="button" class="button button--primary" id="feedback-from-relay" disabled>피드백 남기기</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen E: Feedback -->
+    <section class="screen" id="screen-feedback" data-step="5">
+      <div class="card">
+        <div class="section-heading">
+          <p class="eyebrow">Step 5</p>
+          <h2>MVP 피드백</h2>
+          <p>이번 테스트의 핵심 가설 확인을 위한 즉시 피드백입니다.</p>
+        </div>
+
+        <form id="feedback-form">
+          <label class="field">
+            <span>이런 문제를 실제로 얼마나 자주 경험하나요? <b>*</b></span>
+            <select id="problem-frequency" required>
+              <option value="">선택</option>
+              <option value="거의 없음">거의 없음</option>
+              <option value="가끔">가끔</option>
+              <option value="자주">자주</option>
+              <option value="거의 매번">거의 매번</option>
+            </select>
+          </label>
+
+          <fieldset class="choice-group">
+            <legend>검토 결과가 판단 정리에 도움이 되었나요?</legend>
+            <label class="choice-card compact"><input type="radio" name="aiHelpful" value="예" required /><span><strong>예</strong></span></label>
+            <label class="choice-card compact"><input type="radio" name="aiHelpful" value="아니오" required /><span><strong>아니오</strong></span></label>
+          </fieldset>
+
+          <fieldset class="choice-group">
+            <legend>이 결과라면 실제 사람에게 현장 확인을 요청할 의향이 있나요?</legend>
+            <label class="choice-card compact"><input type="radio" name="relayIntentFeedback" value="예" required /><span><strong>예</strong></span></label>
+            <label class="choice-card compact"><input type="radio" name="relayIntentFeedback" value="아니오" required /><span><strong>아니오</strong></span></label>
+          </fieldset>
+
+          <fieldset class="choice-group">
+            <legend>기존 홈캠만 확인하는 방식보다 이 흐름이 유용하다고 느끼나요?</legend>
+            <label class="choice-card compact"><input type="radio" name="moreUseful" value="예" required /><span><strong>예</strong></span></label>
+            <label class="choice-card compact"><input type="radio" name="moreUseful" value="아니오" required /><span><strong>아니오</strong></span></label>
+          </fieldset>
+
+          <fieldset class="choice-group">
+            <legend>향후 이런 서비스에 비용을 지불할 가능성이 있나요? <small>금액은 제시하지 않습니다.</small></legend>
+            <label class="choice-card compact"><input type="radio" name="payIntent" value="있다" required /><span><strong>있다</strong></span></label>
+            <label class="choice-card compact"><input type="radio" name="payIntent" value="없다" required /><span><strong>없다</strong></span></label>
+            <label class="choice-card compact"><input type="radio" name="payIntent" value="모르겠다" required /><span><strong>모르겠다</strong></span></label>
+          </fieldset>
+
+          <div id="feedback-error" class="notice notice--error hidden" role="alert"></div>
+
+          <button type="submit" class="button button--primary button--full">제출</button>
+        </form>
+
+        <div id="feedback-complete" class="completion hidden" role="status">
+          <div class="completion-mark">✓</div>
+          <h3>테스트가 완료되었습니다.</h3>
+          <p>
+            이 정적 MVP는 피드백을 외부 서버나 Google Sheets로 저장하지 않습니다.
+            가격·결제 기능도 제공하지 않습니다.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
+
+
