@@ -1,0 +1,9 @@
+name = "catguard-relay-ai"
+main = "src/index.js"
+compatibility_date = "2026-08-30"
+
+[vars]
+ALLOWED_ORIGINS = "https://creed3466.github.io"
+
+# GEMINI_API_KEY는 파일에 적지 말고 다음 명령으로 Secret에 저장합니다.
+# npx wrangler secret put GEMINI_API_KEY

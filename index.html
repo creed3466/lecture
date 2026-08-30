@@ -53,7 +53,7 @@
             <button class="button button--primary button--large" type="button" data-landing-anchor="experience">최근 경험으로 시작</button>
             <button class="text-link" type="button" data-landing-anchor="flow-overview">어떻게 작동하나요 <span>→</span></button>
           </div>
-          <div class="trust-row" aria-label="서비스 특징"><span>외부 전송 없음</span><span>진단하지 않음</span><span>사람과 연결</span></div>
+          <div class="trust-row" aria-label="서비스 특징"><span>API 키 비공개</span><span>진단하지 않음</span><span>사람과 연결</span></div>
         </div>
 
         <div class="hero-art" aria-label="CatGuard Relay 안심 상태 화면 미리보기">
@@ -83,7 +83,7 @@
       <section class="principles" id="principles" aria-labelledby="principles-title">
         <p class="eyebrow">Designed for trust</p><h2 id="principles-title">기술은 조용하게.<br />안심은 분명하게.</h2>
         <div class="principle-list">
-          <article><span>01</span><div><h3>Private by design</h3><p>입력 정보는 이 데모에서 외부 서버로 전송되거나 저장되지 않습니다.</p></div></article>
+          <article><span>01</span><div><h3>Private by design</h3><p>사진의 위치정보를 제거하고 축소한 뒤 AI 분석에 필요한 정보만 전송합니다.</p></div></article>
           <article><span>02</span><div><h3>Human in the loop</h3><p>자동 판단보다 실제로 확인할 수 있는 사람과의 연결을 우선합니다.</p></div></article>
           <article><span>03</span><div><h3>Calm, not alarming</h3><p>불안을 키우는 경고 대신 다음 행동을 차분하게 정리합니다.</p></div></article>
         </div>
@@ -108,7 +108,7 @@
         <div class="section-heading">
           <p class="eyebrow">Step 2 · Observe</p>
           <h2>최근 실제 사례를<br />들려주세요.</h2>
-          <p>로컬 데모 처리기는 입력한 사실만 정리하며, 반려묘의 질병·응급·안전 상태를 진단하지 않습니다.</p>
+          <p>멀티모달 AI가 설명과 홈캠 캡처를 함께 살펴봅니다. 반려묘의 질병·응급·안전 상태를 진단하지 않습니다.</p>
         </div>
 
         <form id="case-form" novalidate>
@@ -159,16 +159,21 @@
             <textarea id="device-alert" rows="2" placeholder="예: 움직임 감지 알림, 연결 끊김 알림 등"></textarea>
           </label>
 
-          <label class="field">
+          <div class="field">
             <span>홈캠 캡처 <em>선택 · 1장</em></span>
             <input id="camera-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
-            <small class="field-help">민감하거나 불필요한 개인정보가 포함된 이미지는 업로드하지 마세요.</small>
-          </label>
+            <div id="image-preview-wrap" class="image-preview hidden">
+              <img id="image-preview" alt="선택한 홈캠 캡처 미리보기" />
+              <div><strong>AI 시각 분석 준비 완료</strong><small id="image-meta"></small><button id="remove-image" type="button">이미지 제거</button></div>
+            </div>
+            <small class="field-help">전송 전 최대 1280px로 축소하고 위치정보를 제거합니다. 얼굴·주소 등 개인정보가 담긴 사진은 사용하지 마세요.</small>
+          </div>
 
           <div class="consent-box">
             <p>
               입력하신 부재 상황, 홈캠 관찰 내용 및 선택적으로 첨부한 이미지는 이번 MVP의
               ‘원격 확인 후 현장 확인 연결 흐름’ 검증과 AI 검토 결과 생성에 사용됩니다.
+              AI가 연결된 경우 정제된 입력은 Cloudflare를 거쳐 Google Gemini로 전송되며 이 서비스에서는 저장하지 않습니다.
               연락처나 이름은 수집하지 않으며, 민감하거나 불필요한 개인정보가 포함된 이미지는 업로드하지 마세요.
             </p>
             <label class="check-row">
@@ -193,19 +198,37 @@
         <div class="section-heading">
           <p class="eyebrow">Step 3 · Review</p>
           <h2>현장 확인이 필요한지<br />차분하게 살펴볼게요.</h2>
-          <p>사용자가 입력한 사실과 확인되지 않은 부분을 구분해 보여줍니다.</p>
+          <p>멀티모달 AI가 텍스트와 이미지에서 확인한 사실을, 추측과 분리해 보여줍니다.</p>
         </div>
 
         <div class="input-summary" id="input-summary"></div>
 
         <div id="ai-loading" class="loading-block hidden" aria-live="polite">
           <div class="spinner" aria-hidden="true"></div>
-          <p>입력 내용을 사실과 불확실 정보로 정리하고 있습니다.</p>
+          <div><strong id="loading-title">멀티모달 AI가 장면을 살펴보고 있어요.</strong><p id="loading-detail">고양이와 주변 환경을 관찰 가능한 표현으로 정리합니다.</p></div>
         </div>
 
         <div id="ai-error" class="notice notice--error hidden" role="alert"></div>
 
         <div id="ai-result" class="result-grid hidden">
+          <section class="vision-stage" id="vision-stage">
+            <div class="vision-frame" id="vision-frame">
+              <img id="analysis-image" alt="AI 분석에 사용된 홈캠 캡처" />
+              <div class="scan-line" aria-hidden="true"></div>
+              <span class="vision-badge">VISION INPUT</span>
+            </div>
+            <div class="vision-copy">
+              <div class="analysis-mode"><span class="analysis-dot"></span><strong id="analysis-mode-label">Gemini 멀티모달 분석</strong></div>
+              <p id="scene-summary">이미지와 설명을 함께 분석했습니다.</p>
+              <div class="confidence"><span>관찰 신뢰도</span><div><i id="confidence-bar"></i></div><strong id="confidence-label">—</strong></div>
+            </div>
+          </section>
+
+          <article class="result-card result-card--vision">
+            <h3>이미지에서 보이는 것</h3>
+            <ul id="image-observations-list"></ul>
+          </article>
+
           <article class="result-card">
             <h3>관찰된 사실</h3>
             <ul id="facts-list"></ul>
@@ -226,8 +249,13 @@
             <p id="available-person"></p>
           </article>
 
+          <article class="result-card result-card--checklist">
+            <h3>현장 확인 체크리스트</h3>
+            <ul id="checklist-list"></ul>
+          </article>
+
           <div class="notice notice--warning result-limit">
-            이 로컬 데모는 반려묘의 질병, 응급도, 안전 상태를 진단하거나 보증하지 않습니다.
+            이 AI 관찰은 반려묘의 질병, 응급도, 감정, 안전 상태를 진단하거나 보증하지 않습니다.
             입력 정보가 부족한 경우 확인 불가로 표시하며, 최종 현장 확인 여부는 보호자가 결정합니다.
           </div>
 
@@ -377,6 +405,7 @@
     <p>© 2026 CatGuard Relay · Web MVP</p>
   </footer>
 
+  <script src="./config.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>

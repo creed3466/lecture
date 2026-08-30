@@ -5,8 +5,12 @@ const state = {
   relayTarget: null,
   relayMessage: null,
   sendIntent: null,
-  feedback: null
+  feedback: null,
+  processedImage: null,
+  imageProcessing: null
 };
+
+const AI_ENDPOINT = String(window.CATGUARD_CONFIG?.aiEndpoint || "").trim();
 
 const screens = [...document.querySelectorAll(".screen")];
 const progressSteps = [...document.querySelectorAll("[data-progress]")];
@@ -87,7 +91,49 @@ function normalizeSentence(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
-// 로컬 데모 처리기: 외부 API 호출 없이 사용자가 입력한 사실만 재구성한다.
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, Number(value) || 0));
+}
+
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("이미지를 읽을 수 없습니다."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+// Canvas로 다시 인코딩하면 EXIF 위치정보가 제거되고 전송량도 작아진다.
+async function prepareImage(file) {
+  const image = await fileToImage(file);
+  const maxSide = 1280;
+  const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, width, height);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+  return {
+    mimeType: "image/jpeg",
+    data: dataUrl.split(",")[1],
+    previewUrl: dataUrl,
+    width,
+    height,
+    bytes: Math.round(dataUrl.length * 0.75)
+  };
+}
+
+// AI 서버가 설정되지 않았거나 일시적으로 실패해도 전체 MVP 흐름은 유지한다.
 function buildLocalReview(caseData) {
   const observed = [
     `부재 유형: ${caseData.absenceType}`,
@@ -99,16 +145,16 @@ function buildLocalReview(caseData) {
   if (caseData.deviceAlert) {
     observed.push(`기기 알림 문구: ${normalizeSentence(caseData.deviceAlert)}`);
   }
-  if (caseData.imageFile) {
-    observed.push("사용자가 홈캠 캡처 이미지 1장을 첨부했습니다. 로컬 데모에서는 이미지 내용 자체를 분석하지 않습니다.");
+  if (caseData.image) {
+    observed.push(`홈캠 캡처 1장이 개인정보 메타데이터 제거 후 첨부되었습니다 (${caseData.image.width}×${caseData.image.height}).`);
   }
 
   const unknown = [
     "현재 시점의 실제 반려묘 상태는 원격 입력만으로 확정할 수 없습니다.",
     "입력되지 않은 식사·음수·배변·이동 상황은 확인할 수 없습니다."
   ];
-  if (caseData.imageFile) {
-    unknown.push("첨부 이미지의 내용은 로컬 데모 처리기에서 해석하지 않습니다.");
+  if (caseData.image) {
+    unknown.push("현재 AI 서버에 연결되지 않아 이미지 속 대상과 행동은 확인하지 못했습니다.");
   }
   if (caseData.availableContact === "없음") {
     unknown.push("현재 입력 기준으로 현장 확인을 부탁할 수 있는 사람이 없습니다.");
@@ -121,10 +167,61 @@ function buildLocalReview(caseData) {
 
   return {
     observed_facts: observed,
+    image_observations: caseData.image
+      ? ["이미지 입력은 준비되었지만 현재 로컬 안전 모드에서는 장면을 해석하지 않습니다."]
+      : ["분석할 홈캠 캡처가 첨부되지 않았습니다."],
     unknown_or_missing: unknown,
     reasons_to_consider_check: reasons,
-    available_person: caseData.availableContact || "확인 불가"
+    onsite_checklist: ["고양이가 있는 위치 확인", "물과 사료의 남은 양 확인", "화장실과 주변 환경 확인"],
+    available_person: caseData.availableContact || "확인 불가",
+    scene_summary: caseData.image ? "이미지 분석 서버 연결이 필요합니다." : "입력한 설명을 기준으로 사실을 정리했습니다.",
+    confidence: 0,
+    mode: "local"
   };
+}
+
+function normalizeReview(payload) {
+  return {
+    observed_facts: Array.isArray(payload.observed_facts) ? payload.observed_facts.slice(0, 6) : [],
+    image_observations: Array.isArray(payload.image_observations) ? payload.image_observations.slice(0, 6) : [],
+    unknown_or_missing: Array.isArray(payload.unknown_or_missing) ? payload.unknown_or_missing.slice(0, 6) : [],
+    reasons_to_consider_check: Array.isArray(payload.reasons_to_consider_check) ? payload.reasons_to_consider_check.slice(0, 5) : [],
+    onsite_checklist: Array.isArray(payload.onsite_checklist) ? payload.onsite_checklist.slice(0, 6) : [],
+    available_person: normalizeSentence(payload.available_person) || state.caseData.availableContact || "확인 불가",
+    scene_summary: normalizeSentence(payload.scene_summary) || "이미지와 설명을 함께 살펴봤습니다.",
+    confidence: clamp(payload.confidence, 0, 100),
+    mode: "gemini"
+  };
+}
+
+async function requestAiReview(caseData) {
+  if (!AI_ENDPOINT) throw new Error("AI_ENDPOINT_NOT_CONFIGURED");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(AI_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        caseData: {
+          absenceType: caseData.absenceType,
+          absenceDuration: caseData.absenceDuration,
+          lastCheckTime: caseData.lastCheckTime,
+          availableContact: caseData.availableContact,
+          observedFacts: caseData.observedFacts,
+          concernReason: caseData.concernReason,
+          deviceAlert: caseData.deviceAlert
+        },
+        image: caseData.image ? { mimeType: caseData.image.mimeType, data: caseData.image.data } : null
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `AI 서버 오류 (${response.status})`);
+    return normalizeReview(payload);
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function buildLocalRelayMessage(caseData, target) {
@@ -132,7 +229,11 @@ function buildLocalRelayMessage(caseData, target) {
     ? `\n- 기기 알림: ${normalizeSentence(caseData.deviceAlert)}`
     : "";
 
-  return `[CatGuard Relay 현장 확인 요청]\n\n${target}에게 부탁드립니다.\n\n제가 지금 ${caseData.absenceType}으로 집을 비운 상태입니다.\n- 집을 비운 시간: ${caseData.absenceDuration}\n- 마지막 원격 확인: ${caseData.lastCheckTime}\n- 홈캠에서 확인한 내용: ${normalizeSentence(caseData.observedFacts)}\n- 추가 확인이 필요하다고 느낀 이유: ${normalizeSentence(caseData.concernReason)}${alertLine}\n\n가능하시면 집에 가서 현재 상황을 한 번 확인해 주세요.\n이 요청은 질병·응급 여부를 판단한 것이 아니라, 원격 확인만으로 알 수 없는 부분을 직접 확인하기 위한 요청입니다.`;
+  const aiLine = state.aiReview?.scene_summary ? `\n- AI 관찰 요약: ${state.aiReview.scene_summary}` : "";
+  const checklist = state.aiReview?.onsite_checklist?.length
+    ? `\n\n확인 부탁드릴 항목\n${state.aiReview.onsite_checklist.map((item) => `- ${item}`).join("\n")}`
+    : "";
+  return `[CatGuard Relay 현장 확인 요청]\n\n${target}에게 부탁드립니다.\n\n제가 지금 ${caseData.absenceType}으로 집을 비운 상태입니다.\n- 집을 비운 시간: ${caseData.absenceDuration}\n- 마지막 원격 확인: ${caseData.lastCheckTime}\n- 홈캠에서 확인한 내용: ${normalizeSentence(caseData.observedFacts)}\n- 추가 확인이 필요하다고 느낀 이유: ${normalizeSentence(caseData.concernReason)}${alertLine}${aiLine}${checklist}\n\n가능하시면 집에 가서 현재 상황을 한 번 확인해 주세요.\nAI 관찰은 질병·응급 여부를 판단한 것이 아니라, 직접 확인할 항목을 정리한 참고 정보입니다.`;
 }
 
 // Screen A
@@ -162,11 +263,55 @@ const caseForm = document.getElementById("case-form");
 const consent = document.getElementById("privacy-consent");
 const aiSubmitButton = document.getElementById("ai-submit-button");
 const formError = document.getElementById("form-error");
+const cameraImageInput = document.getElementById("camera-image");
+const imagePreviewWrap = document.getElementById("image-preview-wrap");
+const imagePreview = document.getElementById("image-preview");
+const imageMeta = document.getElementById("image-meta");
+const removeImageButton = document.getElementById("remove-image");
 
 function updateAiSubmitState() {
   aiSubmitButton.disabled = !consent.checked;
 }
 consent.addEventListener("change", updateAiSubmitState);
+
+function clearPreparedImage() {
+  state.processedImage = null;
+  state.imageProcessing = null;
+  cameraImageInput.value = "";
+  imagePreview.removeAttribute("src");
+  setHidden(imagePreviewWrap, true);
+}
+
+cameraImageInput.addEventListener("change", () => {
+  const file = cameraImageInput.files[0];
+  setHidden(formError, true);
+  if (!file) {
+    clearPreparedImage();
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    formError.textContent = "캡처 이미지는 5MB 이하 파일을 사용해주세요.";
+    setHidden(formError, false);
+    clearPreparedImage();
+    return;
+  }
+  state.imageProcessing = prepareImage(file)
+    .then((prepared) => {
+      state.processedImage = prepared;
+      imagePreview.src = prepared.previewUrl;
+      imageMeta.textContent = `${prepared.width} × ${prepared.height} · 위치정보 제거 · ${Math.max(1, Math.round(prepared.bytes / 1024))}KB`;
+      setHidden(imagePreviewWrap, false);
+      return prepared;
+    })
+    .catch((error) => {
+      clearPreparedImage();
+      formError.textContent = error.message;
+      setHidden(formError, false);
+      throw error;
+    });
+});
+
+removeImageButton.addEventListener("click", clearPreparedImage);
 
 caseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -179,11 +324,15 @@ caseForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const imageFile = document.getElementById("camera-image").files[0] || null;
-  if (imageFile && imageFile.size > 5 * 1024 * 1024) {
-    formError.textContent = "캡처 이미지는 5MB 이하 파일을 사용해주세요.";
-    setHidden(formError, false);
-    return;
+  if (state.imageProcessing) {
+    aiSubmitButton.disabled = true;
+    try {
+      await state.imageProcessing;
+    } catch {
+      aiSubmitButton.disabled = false;
+      return;
+    }
+    aiSubmitButton.disabled = false;
   }
 
   state.caseData = {
@@ -194,7 +343,7 @@ caseForm.addEventListener("submit", async (event) => {
     observedFacts: document.getElementById("observed-facts").value.trim(),
     concernReason: document.getElementById("concern-reason").value.trim(),
     deviceAlert: document.getElementById("device-alert").value.trim(),
-    imageFile
+    image: state.processedImage
   };
 
   document.getElementById("input-summary").textContent =
@@ -211,16 +360,47 @@ async function runReview() {
   const resultWrap = document.getElementById("ai-result");
 
   setHidden(loading, false);
+  errorBox.className = "notice notice--error hidden";
   setHidden(errorBox, true);
   setHidden(resultWrap, true);
 
+  const modeLabel = document.getElementById("analysis-mode-label");
+  const visionStage = document.getElementById("vision-stage");
+  const analysisImage = document.getElementById("analysis-image");
+  const confidenceBar = document.getElementById("confidence-bar");
+  const confidenceLabel = document.getElementById("confidence-label");
+
+  document.getElementById("loading-title").textContent = state.caseData.image
+    ? "멀티모달 AI가 장면을 살펴보고 있어요."
+    : "AI가 입력 내용을 정리하고 있어요.";
+
   try {
-    await wait();
-    const result = buildLocalReview(state.caseData);
+    let result;
+    try {
+      result = await requestAiReview(state.caseData);
+    } catch (apiError) {
+      await wait(650);
+      result = buildLocalReview(state.caseData);
+      const notConfigured = apiError.message === "AI_ENDPOINT_NOT_CONFIGURED";
+      errorBox.textContent = notConfigured
+        ? "AI Worker 주소가 아직 설정되지 않아 로컬 안전 분석으로 표시합니다. 설정 후 같은 화면에서 실제 Gemini 분석이 동작합니다."
+        : "AI 연결이 원활하지 않아 로컬 안전 분석으로 전환했습니다. 입력한 내용은 계속 확인할 수 있습니다.";
+      errorBox.className = "notice notice--warning";
+      setHidden(errorBox, false);
+    }
     state.aiReview = result;
+    modeLabel.textContent = result.mode === "gemini" ? "Gemini 멀티모달 분석" : "로컬 안전 분석";
+    visionStage.classList.toggle("vision-stage--text-only", !state.caseData.image);
+    if (state.caseData.image) analysisImage.src = state.caseData.image.previewUrl;
+    else analysisImage.removeAttribute("src");
+    document.getElementById("scene-summary").textContent = result.scene_summary;
+    confidenceBar.style.width = `${result.confidence}%`;
+    confidenceLabel.textContent = result.mode === "gemini" ? `${result.confidence}%` : "N/A";
+    renderList(document.getElementById("image-observations-list"), result.image_observations);
     renderList(document.getElementById("facts-list"), result.observed_facts);
     renderList(document.getElementById("unknown-list"), result.unknown_or_missing);
     renderList(document.getElementById("consider-list"), result.reasons_to_consider_check);
+    renderList(document.getElementById("checklist-list"), result.onsite_checklist);
     document.getElementById("available-person").textContent = result.available_person || "확인 불가";
     setHidden(resultWrap, false);
   } catch (error) {
