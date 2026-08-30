@@ -6,7 +6,7 @@
   <meta name="description" content="멀리 있어도 안심이 이어지는 CatGuard Relay 웹 MVP" />
   <meta name="theme-color" content="#f5f5f7" />
   <title>CatGuard Relay — 안심을 연결하다</title>
-  <link rel="stylesheet" href="./style.css?v=20260830-5" />
+  <link rel="stylesheet" href="./style.css?v=20260830-6" />
 </head>
 <body>
   <a class="skip-link" href="#main-content">본문으로 바로가기</a>
@@ -29,7 +29,14 @@
 
   <nav class="flow-nav" aria-label="MVP 진행 단계">
     <div class="flow-nav__inner">
-      <div class="flow-nav__title"><strong>안심 플로우</strong><span id="flow-status">1 / 5</span></div>
+      <div class="flow-nav__title">
+        <a class="sheets-db-link" href="https://docs.google.com/spreadsheets/d/1yK8JX_jMEJpyHITnH8VgmpcyYBZjSts5Moroixlk8Tc/edit" target="_blank" rel="noopener noreferrer" aria-label="Google Sheets 데이터베이스 새 창에서 열기">
+          <span class="sheets-db-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <strong>GoogleSheets DB</strong>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3 5 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <span id="flow-status">1 / 5</span>
+      </div>
       <div class="flow-tabs" role="tablist" aria-label="진행 단계 탭">
         <button class="flow-tab is-active" type="button" role="tab" data-progress="1" data-nav-screen="screen-landing" aria-current="step"><span>01</span><em>시작</em></button>
         <button class="flow-tab" type="button" role="tab" data-progress="2" data-nav-screen="screen-input" disabled><span>02</span><em>MVP 입력</em></button>
